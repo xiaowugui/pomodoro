@@ -67,8 +67,18 @@
 npm install
 ```
 
-### 开发模式
+### 开发模式（推荐 - 干净启动）
 ```bash
+# 方式1：使用新的干净启动（无命令行窗口）
+npm run dev:clean
+
+# 方式2：使用 PowerShell 脚本（完全隐藏）
+.\start-hidden.ps1
+
+# 方式3：使用批处理文件（最小化窗口）
+.\start-dev.bat
+
+# 传统方式（会显示命令行窗口）
 npm run dev
 ```
 
