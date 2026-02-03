@@ -37,3 +37,17 @@ coverage/
 .env
 .env.local
 .env.*.local
+
+# Temporary and test files
+*~
+*.tmp
+*.temp
+
+# Test scripts (not needed in production)
+test-*.ps1
+*-test.ps1
+rebuild.ps1
+
+# Reports and documentation drafts
+*-REPORT.md
+FIX_*.md
