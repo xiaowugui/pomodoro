@@ -1,0 +1,162 @@
+// 项目
+export interface Project {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+// 任务
+export interface Task {
+  id: string;
+  title: string;
+  projectId: string;
+  estimatedPomodoros: number;
+  completedPomodoros: number;
+  status: 'active' | 'completed';
+  createdAt: string;
+  completedAt?: string;
+}
+
+// 番茄钟记录
+export interface PomodoroLog {
+  id: string;
+  taskId: string;
+  projectId: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  completed: boolean;
+  type: 'work' | 'short_break' | 'long_break';
+}
+
+// 设置
+export interface Settings {
+  // 番茄钟时长 (分钟)
+  pomodoroDuration: number;
+  shortBreakDuration: number;
+  longBreakDuration: number;
+  longBreakInterval: number;
+  
+  // 行为设置
+  autoStartBreaks: boolean;
+  autoStartPomodoros: boolean;
+  strictMode: boolean;
+  
+  // 休息设置
+  fullscreenBreak: boolean;
+  allScreensBreak: boolean;
+  skipDelayPercent: number;
+  postponeMinutes: number;
+  
+  // 通知设置
+  soundEnabled: boolean;
+  notificationEnabled: boolean;
+  
+  // 外观
+  theme: 'light' | 'dark' | 'system';
+  accentColor: string;
+  
+  // 快捷键
+  shortcuts: {
+    toggleTimer: string;
+    skipPhase: string;
+    showWindow: string;
+  };
+}
+
+// 默认设置
+export const defaultSettings: Settings = {
+  pomodoroDuration: 25,
+  shortBreakDuration: 5,
+  longBreakDuration: 15,
+  longBreakInterval: 4,
+  autoStartBreaks: false,
+  autoStartPomodoros: false,
+  strictMode: false,
+  fullscreenBreak: true,
+  allScreensBreak: true,
+  skipDelayPercent: 30,
+  postponeMinutes: 2,
+  soundEnabled: true,
+  notificationEnabled: true,
+  theme: 'system',
+  accentColor: '#ef4444',
+  shortcuts: {
+    toggleTimer: 'CommandOrControl+Shift+P',
+    skipPhase: 'CommandOrControl+Shift+S',
+    showWindow: 'CommandOrControl+Shift+O',
+  },
+};
+
+// 应用状态
+export interface AppState {
+  settings: Settings;
+  projects: Project[];
+  tasks: Task[];
+  logs: PomodoroLog[];
+}
+
+// 番茄钟计时器状态
+export interface TimerState {
+  isRunning: boolean;
+  timeRemaining: number;
+  totalTime: number;
+  phase: 'work' | 'short_break' | 'long_break' | 'idle';
+  currentTaskId: string | null;
+  pomodorosCompleted: number;
+  sessionId: string | null;
+}
+
+// IPC 通道定义
+export const IPC_CHANNELS = {
+  // 设置
+  GET_SETTINGS: 'get-settings',
+  SET_SETTINGS: 'set-settings',
+  SETTINGS_CHANGED: 'settings-changed',
+  
+  // 数据管理
+  GET_DATA: 'get-data',
+  SAVE_DATA: 'save-data',
+  DATA_CHANGED: 'data-changed',
+  
+  // 项目
+  GET_PROJECTS: 'get-projects',
+  CREATE_PROJECT: 'create-project',
+  UPDATE_PROJECT: 'update-project',
+  DELETE_PROJECT: 'delete-project',
+  
+  // 任务
+  GET_TASKS: 'get-tasks',
+  CREATE_TASK: 'create-task',
+  UPDATE_TASK: 'update-task',
+  DELETE_TASK: 'delete-task',
+  
+  // 番茄钟日志
+  GET_LOGS: 'get-logs',
+  CREATE_LOG: 'create-log',
+  UPDATE_LOG: 'update-log',
+  
+  // 计时器控制
+  TIMER_START: 'timer-start',
+  TIMER_PAUSE: 'timer-pause',
+  TIMER_RESUME: 'timer-resume',
+  TIMER_STOP: 'timer-stop',
+  TIMER_SKIP: 'timer-skip',
+  TIMER_TICK: 'timer-tick',
+  TIMER_COMPLETE: 'timer-complete',
+  
+  // 休息窗口
+  SHOW_BREAK_WINDOW: 'show-break-window',
+  HIDE_BREAK_WINDOW: 'hide-break-window',
+  BREAK_WINDOW_ACTION: 'break-window-action',
+  BREAK_WINDOW_CLOSED: 'break-window-closed',
+  
+  // 窗口控制
+  SHOW_MAIN_WINDOW: 'show-main-window',
+  HIDE_MAIN_WINDOW: 'hide-main-window',
+  QUIT_APP: 'quit-app',
+  
+  // 通知
+  SHOW_NOTIFICATION: 'show-notification',
+} as const;
