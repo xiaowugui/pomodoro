@@ -43,11 +43,21 @@ export interface Settings {
   autoStartPomodoros: boolean;
   strictMode: boolean;
   
-  // 休息设置
+  // 休息设置 - 增强版
   fullscreenBreak: boolean;
   allScreensBreak: boolean;
+  breakWindowWidth: number;      // 窗口宽度占比 (0.0-1.0, 默认0.85)
+  breakWindowHeight: number;     // 窗口高度占比 (0.0-1.0, 默认0.85)
+  breakOpacity: number;           // 窗口透明度 (0.0-1.0, 默认0.95)
+  transparentMode: boolean;       // 是否启用透明模式
+  breakStrictMode: boolean;       // 严格模式（防止关闭）
   skipDelayPercent: number;
-  postponeMinutes: number;
+  
+  // 推迟功能设置
+  postponeEnabled: boolean;     // 是否启用推迟
+  postponeMinutes: number;      // 推迟时长（分钟）
+  postponeLimit: number;        // 每休息最多推迟次数
+  postponeDelayPercent: number;  // 可推迟的时间百分比（前多少百分比可推迟）
   
   // 通知设置
   soundEnabled: boolean;
@@ -62,6 +72,8 @@ export interface Settings {
     toggleTimer: string;
     skipPhase: string;
     showWindow: string;
+    endBreak: string;             // 结束休息快捷键
+    postponeBreak: string;        // 推迟休息快捷键
   };
 }
 
@@ -74,10 +86,23 @@ export const defaultSettings: Settings = {
   autoStartBreaks: false,
   autoStartPomodoros: false,
   strictMode: false,
+  
+  // 休息窗口设置
   fullscreenBreak: true,
   allScreensBreak: true,
+  breakWindowWidth: 0.85,
+  breakWindowHeight: 0.85,
+  breakOpacity: 0.95,
+  transparentMode: false,
+  breakStrictMode: false,
   skipDelayPercent: 30,
+  
+  // 推迟功能设置
+  postponeEnabled: true,
   postponeMinutes: 2,
+  postponeLimit: 1,
+  postponeDelayPercent: 30,
+  
   soundEnabled: true,
   notificationEnabled: true,
   theme: 'system',
@@ -86,6 +111,8 @@ export const defaultSettings: Settings = {
     toggleTimer: 'CommandOrControl+Shift+P',
     skipPhase: 'CommandOrControl+Shift+S',
     showWindow: 'CommandOrControl+Shift+O',
+    endBreak: 'CommandOrControl+X',         // Stretchly风格快捷键
+    postponeBreak: 'CommandOrControl+P',
   },
 };
 
@@ -152,6 +179,18 @@ export const IPC_CHANNELS = {
   BREAK_WINDOW_ACTION: 'break-window-action',
   BREAK_WINDOW_CLOSED: 'break-window-closed',
   
+  // 休息窗口增强
+  BREAK_TICK: 'break-tick',
+  BREAK_SKIP_STATUS: 'break-skip-status',
+  BREAK_CAN_POSTPONE: 'break-can-postpone',
+  BREAK_POSTPONE_COUNT: 'break-postpone-count',
+  BREAK_STRICT_MODE: 'break-strict-mode',
+  
+  // 休息窗口动作
+  BREAK_POSTPONE: 'break-postpone',
+  BREAK_COMPLETE: 'break-complete',
+  BREAK_SKIP: 'break-skip',
+  
   // 窗口控制
   SHOW_MAIN_WINDOW: 'show-main-window',
   HIDE_MAIN_WINDOW: 'hide-main-window',
@@ -159,4 +198,8 @@ export const IPC_CHANNELS = {
   
   // 通知
   SHOW_NOTIFICATION: 'show-notification',
+  
+  // 全局快捷键
+  REGISTER_BREAK_SHORTCUTS: 'register-break-shortcuts',
+  UNREGISTER_BREAK_SHORTCUTS: 'unregister-break-shortcuts',
 } as const;

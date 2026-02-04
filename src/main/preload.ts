@@ -89,13 +89,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onBreakWindowAction: (callback: (action: string) => void) => {
     ipcRenderer.on(IPC_CHANNELS.BREAK_WINDOW_ACTION, (_, action) => callback(action))
   },
-  onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number }) => void) => {
+  onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number; canPostpone?: boolean; postponeCount?: number; postponeLimit?: number }) => void) => {
     ipcRenderer.on('break-tick', (_, data) => callback(data))
   },
   onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => {
     ipcRenderer.on('break-skip-status', (_, data) => callback(data))
   },
+  onBreakPostponeCount: (callback: (data: { count: number; limit: number }) => void) => {
+    ipcRenderer.on('break-postpone-count', (_, data) => callback(data))
+  },
+  onBreakStrictMode: (callback: (data: { enabled: boolean }) => void) => {
+    ipcRenderer.on('break-strict-mode', (_, data) => callback(data))
+  },
   closeBreakWindow: () => ipcRenderer.send(IPC_CHANNELS.BREAK_WINDOW_CLOSED),
+  
+  // 休息窗口动作
+  breakComplete: () => ipcRenderer.invoke('break-complete'),
+  breakPostpone: () => ipcRenderer.invoke('break-postpone'),
+  breakSkip: () => ipcRenderer.invoke('break-skip'),
+  getBreakSettings: () => ipcRenderer.invoke('get-break-settings'),
 
   // 移除监听器
   removeAllListeners: (channel: string) => {
