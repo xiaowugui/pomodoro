@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Coffee, Sparkles, X, Clock, AlertCircle, Zap } from 'lucide-react';
+import { Coffee, Sparkles, X, Clock, Zap } from 'lucide-react';
 
 interface BreakOverlayProps {
   type: 'short_break' | 'long_break';
@@ -30,7 +30,7 @@ export default function BreakOverlay({
 }: BreakOverlayProps) {
   const [isFullscreen, setIsFullscreen] = useState(true);
   
-  // 检测屏幕尺寸判断是否全屏
+  // 检测屏幕尺寸
   useEffect(() => {
     const checkFullscreen = () => {
       const isFS = window.innerWidth > 800 || window.innerHeight > 600;
@@ -49,6 +49,7 @@ export default function BreakOverlay({
   // 计算进度
   const progress = ((validTotalTime - validTimeRemaining) / validTotalTime) * 100;
   
+  // 格式化时间显示
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -56,18 +57,12 @@ export default function BreakOverlay({
   };
   
   const isShortBreak = type === 'short_break';
-  
-  // 根据全屏状态调整尺寸
-  const iconSize = isFullscreen ? 48 : 28;
-  const titleSize = isFullscreen ? '48px' : '24px';
-  const subtitleSize = isFullscreen ? '20px' : '14px';
-  const timerSize = isFullscreen ? '96px' : '48px';
-  const ringSize = isFullscreen ? 280 : 192;
-  const circumference = 2 * Math.PI * (ringSize / 2 - 10);
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-  
-  // 计算剩余推迟次数
   const remainingPostpones = postponeLimit - postponeCount;
+  
+  // 计算进度环
+  const ringSize = isFullscreen ? 360 : 240;
+  const circumference = 2 * Math.PI * (ringSize / 2 - 12);
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
   
   return (
     <div style={{
@@ -78,88 +73,69 @@ export default function BreakOverlay({
       minHeight: '100vh',
       width: '100vw',
       background: isShortBreak 
-        ? 'linear-gradient(135deg, #10b981 0%, #0d9488 50%, #0891b2 100%)' 
-        : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
-      padding: isFullscreen ? '48px' : '24px',
+        ? '#10b981' // 短休息 - 纯绿色
+        : '#3b82f6', // 长休息 - 纯蓝色
+      padding: isFullscreen ? '40px' : '20px',
       boxSizing: 'border-box',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
-      {/* 内容容器 */}
+      {/* 中央内容容器 */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: isFullscreen ? '32px' : '24px',
+        justifyContent: 'center',
+        gap: isFullscreen ? '40px' : '28px',
         width: '100%',
-        maxWidth: isFullscreen ? '600px' : '320px',
+        maxWidth: isFullscreen ? '500px' : '340px',
       }}>
-        {/* 图标 */}
+        
+        {/* 休息类型图标 */}
         <div style={{
-          width: isFullscreen ? 96 : 56,
-          height: isFullscreen ? 96 : 56,
-          borderRadius: isFullscreen ? 24 : 16,
-          backgroundColor: 'rgba(255,255,255,0.2)',
+          width: isFullscreen ? 80 : 56,
+          height: isFullscreen ? 80 : 56,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(255,255,255,0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backdropFilter: 'blur(10px)',
+          flexShrink: 0,
         }}>
           {isShortBreak ? (
-            <Coffee size={iconSize} color="white" />
+            <Coffee size={isFullscreen ? 40 : 28} color="white" strokeWidth={2} />
           ) : (
-            <Sparkles size={iconSize} color="white" />
+            <Sparkles size={isFullscreen ? 40 : 28} color="white" strokeWidth={2} />
           )}
         </div>
         
-        {/* 标题区域 */}
+        {/* 休息标题 */}
         <div style={{ textAlign: 'center' }}>
           <h1 style={{
-            fontSize: titleSize,
+            fontSize: isFullscreen ? '36px' : '24px',
             fontWeight: 'bold',
             color: 'white',
             margin: '0 0 8px 0',
-            textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            letterSpacing: '2px',
           }}>
             {isShortBreak ? '短休息' : '长休息'}
           </h1>
           <p style={{
-            fontSize: subtitleSize,
+            fontSize: isFullscreen ? '16px' : '13px',
             color: 'rgba(255,255,255,0.85)',
             margin: 0,
           }}>
-            {isShortBreak ? '短暂放松一下，让眼睛休息' : '好好休息充电，恢复精力'}
+            {isShortBreak ? '让眼睛休息一下' : '好好休息，恢复精力'}
           </p>
         </div>
         
-        {/* 严格模式指示器 */}
-        {strictMode && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            backgroundColor: 'rgba(239, 68, 68, 0.2)',
-            borderRadius: '20px',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-          }}>
-            <AlertCircle size={16} color="#fca5a5" />
-            <span style={{
-              fontSize: '14px',
-              color: '#fca5a5',
-              fontWeight: 500,
-            }}>
-              严格模式 - 休息期间无法关闭窗口
-            </span>
-          </div>
-        )}
-        
-        {/* 计时器环形 */}
+        {/* 中央倒计时 - 醒目大字体 */}
         <div style={{
           position: 'relative',
           width: ringSize,
           height: ringSize,
+          flexShrink: 0,
         }}>
-          {/* 环形背景 */}
+          {/* 进度环 */}
           <svg style={{
             width: '100%',
             height: '100%',
@@ -169,30 +145,29 @@ export default function BreakOverlay({
             <circle
               cx={ringSize / 2}
               cy={ringSize / 2}
-              r={ringSize / 2 - 10}
+              r={ringSize / 2 - 12}
               fill="none"
               stroke="rgba(255,255,255,0.2)"
-              strokeWidth={isFullscreen ? 8 : 5}
+              strokeWidth={10}
             />
             {/* 进度环 */}
             <circle
               cx={ringSize / 2}
               cy={ringSize / 2}
-              r={ringSize / 2 - 10}
+              r={ringSize / 2 - 12}
               fill="none"
               stroke="white"
-              strokeWidth={isFullscreen ? 8 : 5}
+              strokeWidth={10}
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
               style={{ 
                 transition: 'stroke-dashoffset 1s linear',
-                filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))',
               }}
             />
           </svg>
           
-          {/* 时间显示 */}
+          {/* 中央大倒计时 */}
           <div style={{
             position: 'absolute',
             inset: 0,
@@ -202,74 +177,53 @@ export default function BreakOverlay({
             justifyContent: 'center',
           }}>
             <span style={{
-              fontSize: timerSize,
-              fontFamily: 'monospace',
+              fontSize: isFullscreen ? '120px' : '72px',
+              fontFamily: '"SF Mono", Monaco, "Cascadia Code", monospace',
               fontWeight: 'bold',
               color: 'white',
-              textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              lineHeight: 1,
+              letterSpacing: '4px',
             }}>
               {formatTime(validTimeRemaining)}
             </span>
             <span style={{
-              fontSize: isFullscreen ? '16px' : '12px',
+              fontSize: isFullscreen ? '18px' : '14px',
               color: 'rgba(255,255,255,0.7)',
-              marginTop: '4px',
+              marginTop: '8px',
+              fontWeight: 500,
             }}>
               剩余时间
             </span>
           </div>
         </div>
         
-        {/* 进度文本 */}
+        {/* 进度百分比 */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '16px',
+          gap: '6px',
+          padding: '8px 16px',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+          borderRadius: '20px',
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderRadius: '16px',
+          <Clock size={16} color="white" />
+          <span style={{
+            fontSize: '14px',
+            color: 'white',
+            fontWeight: 600,
           }}>
-            <Clock size={14} color="rgba(255,255,255,0.8)" />
-            <span style={{
-              fontSize: '14px',
-              color: 'rgba(255,255,255,0.8)',
-            }}>
-              {Math.round(progress)}% 已完成
-            </span>
-          </div>
-          
-          {canPostpone && remainingPostpones > 0 && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              backgroundColor: 'rgba(251, 191, 36, 0.2)',
-              borderRadius: '16px',
-            }}>
-              <Zap size={14} color="#fbbf24" />
-              <span style={{
-                fontSize: '14px',
-                color: '#fbbf24',
-              }}>
-                可推迟 {remainingPostpones} 次
-              </span>
-            </div>
-          )}
+            {Math.round(progress)}% 已完成
+          </span>
         </div>
         
-        {/* 按钮区域 */}
+        {/* 中央按钮区域 */}
         <div style={{
           display: 'flex',
           flexDirection: isFullscreen ? 'row' : 'column',
-          gap: '12px',
+          gap: '16px',
           width: '100%',
-          maxWidth: isFullscreen ? '500px' : '100%',
+          maxWidth: isFullscreen ? '480px' : '100%',
+          marginTop: '8px',
         }}>
           {/* 推迟按钮 */}
           {canPostpone && remainingPostpones > 0 && onPostpone && (
@@ -277,97 +231,97 @@ export default function BreakOverlay({
               onClick={onPostpone}
               style={{
                 flex: isFullscreen ? 1 : undefined,
-                padding: isFullscreen ? '16px 24px' : '12px 24px',
+                padding: isFullscreen ? '18px 32px' : '14px 24px',
                 borderRadius: '12px',
-                border: '2px solid rgba(251, 191, 36, 0.5)',
-                backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                color: '#fbbf24',
-                fontSize: isFullscreen ? '16px' : '14px',
+                border: '2px solid white',
+                backgroundColor: 'transparent',
+                color: 'white',
+                fontSize: isFullscreen ? '18px' : '15px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
+                gap: '10px',
                 transition: 'all 0.2s ease',
-                backdropFilter: 'blur(10px)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.2)';
-                e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.7)';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Clock size={18} />
+              <Zap size={20} />
               推迟休息 ({postponeShortcut})
             </button>
           )}
           
-          {/* 结束休息按钮 */}
+          {/* 结束/跳过休息按钮 - 更醒目的实心按钮 */}
           <button
             onClick={onComplete}
+            disabled={strictMode}
             style={{
               flex: isFullscreen ? 1 : undefined,
-              padding: isFullscreen ? '16px 24px' : '12px 24px',
+              padding: isFullscreen ? '18px 32px' : '14px 24px',
               borderRadius: '12px',
-              border: '2px solid rgba(255,255,255,0.3)',
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              color: 'white',
-              fontSize: isFullscreen ? '16px' : '14px',
-              fontWeight: 600,
+              border: 'none',
+              backgroundColor: strictMode ? 'rgba(255,255,255,0.3)' : 'white',
+              color: isShortBreak ? '#10b981' : '#3b82f6',
+              fontSize: isFullscreen ? '18px' : '15px',
+              fontWeight: 700,
               cursor: strictMode ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '10px',
               transition: 'all 0.2s ease',
-              backdropFilter: 'blur(10px)',
-              opacity: strictMode ? 0.5 : 1,
+              boxShadow: strictMode ? 'none' : '0 4px 14px rgba(0,0,0,0.2)',
+              opacity: strictMode ? 0.6 : 1,
             }}
-            disabled={strictMode}
             onMouseEnter={(e) => {
               if (!strictMode) {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+              if (!strictMode) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.2)';
+              }
             }}
           >
-            <X size={18} />
-            {strictMode ? '休息期间无法结束' : `结束休息 (${endBreakShortcut})`}
+            <X size={20} />
+            {strictMode ? '休息期间无法跳过' : `跳过休息 (${endBreakShortcut})`}
           </button>
         </div>
         
-        {/* 快捷键提示 */}
-        {!strictMode && (
-          <div style={{
-            display: 'flex',
-            gap: '16px',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-          }}>
+        {/* 底部提示信息 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+          marginTop: '8px',
+        }}>
+          {canPostpone && remainingPostpones > 0 && (
+            <span style={{
+              fontSize: '13px',
+              color: 'rgba(255,255,255,0.7)',
+            }}>
+              还可推迟 {remainingPostpones} 次
+            </span>
+          )}
+          {!strictMode && (
             <span style={{
               fontSize: '12px',
               color: 'rgba(255,255,255,0.5)',
             }}>
-              快捷键: {endBreakShortcut} 结束
+              快捷键: {endBreakShortcut} 跳过{canPostpone && remainingPostpones > 0 ? ` | ${postponeShortcut} 推迟` : ''}
             </span>
-            {canPostpone && remainingPostpones > 0 && (
-              <span style={{
-                fontSize: '12px',
-                color: 'rgba(255,255,255,0.5)',
-              }}>
-                {postponeShortcut} 推迟
-              </span>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

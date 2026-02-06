@@ -82,32 +82,17 @@ export class ShortcutsManager {
         }
       });
       
-      if (success) {
-        console.log(`[ShortcutsManager] Registered break end shortcut: ${shortcuts.endBreak}`);
-      }
     }
 
     // 推迟休息快捷键
     if (settings.postponeEnabled && shortcuts.postponeBreak) {
-      const success = this.registerBreakShortcut(shortcuts.postponeBreak, () => {
+      this.registerBreakShortcut(shortcuts.postponeBreak, () => {
         const breakWindows = app.getBreakWindows();
-        if (breakWindows.getCanPostpone()) {
-          const postponeSuccess = breakWindows.postpone();
-          if (postponeSuccess) {
-            // 推迟成功后隐藏窗口并暂停计时器
-            breakWindows.hide();
-            // 调用计时器推迟方法
-            if (typeof app.getTimer().postpone === 'function') {
-              app.getTimer().postpone();
-            }
-            this.unregisterBreakShortcuts();
-          }
-        }
+        // 推迟休息
+        breakWindows.postponeBreak();
+        // 注销快捷键
+        this.unregisterBreakShortcuts();
       });
-      
-      if (success) {
-        console.log(`[ShortcutsManager] Registered postpone shortcut: ${shortcuts.postponeBreak}`);
-      }
     }
   }
 
@@ -118,7 +103,6 @@ export class ShortcutsManager {
     for (const shortcut of this.breakShortcuts) {
       try {
         globalShortcut.unregister(shortcut);
-        console.log(`[ShortcutsManager] Unregistered break shortcut: ${shortcut}`);
       } catch (error) {
         console.error(`[ShortcutsManager] Error unregistering shortcut ${shortcut}:`, error);
       }
@@ -141,9 +125,6 @@ export class ShortcutsManager {
       const success = globalShortcut.register(accelerator, callback);
       if (success) {
         this.registeredShortcuts.push(accelerator);
-        console.log(`[ShortcutsManager] Registered global shortcut: ${accelerator}`);
-      } else {
-        console.warn(`[ShortcutsManager] Failed to register shortcut: ${accelerator}`);
       }
       return success;
     } catch (error) {
@@ -159,15 +140,12 @@ export class ShortcutsManager {
     try {
       // 检查是否已注册
       if (globalShortcut.isRegistered(accelerator)) {
-        console.warn(`[ShortcutsManager] Shortcut already registered: ${accelerator}`);
         return false;
       }
       
       const success = globalShortcut.register(accelerator, callback);
       if (success) {
         this.breakShortcuts.push(accelerator);
-      } else {
-        console.warn(`[ShortcutsManager] Failed to register break shortcut: ${accelerator}`);
       }
       return success;
     } catch (error) {
@@ -195,8 +173,6 @@ export class ShortcutsManager {
     
     // 确保全部清理
     globalShortcut.unregisterAll();
-    
-    console.log('[ShortcutsManager] All shortcuts unregistered');
   }
 
   /**

@@ -23,7 +23,6 @@ export class StorageManager {
     try {
       await this.load();
     } catch (error) {
-      console.log('No existing data found, using defaults');
       await this.save();
     }
   }
@@ -94,9 +93,18 @@ export class StorageManager {
       return false;
     }
     
+    // Get all task IDs that belong to this project before deleting them
+    const tasksToDelete = this.data.tasks.filter(t => t.projectId === projectId);
+    const taskIdsToDelete = tasksToDelete.map(t => t.id);
+    
+    // Remove the project
     this.data.projects.splice(index, 1);
     
+    // Remove tasks belonging to this project
     this.data.tasks = this.data.tasks.filter(t => t.projectId !== projectId);
+    
+    // CASCADE DELETE: Remove all logs for tasks in this project
+    this.data.logs = this.data.logs.filter(l => !taskIdsToDelete.includes(l.taskId));
     
     this.save().catch(console.error);
     return true;
@@ -136,7 +144,13 @@ export class StorageManager {
     if (index === -1) {
       return false;
     }
+    
+    // Remove the task
     this.data.tasks.splice(index, 1);
+    
+    // CASCADE DELETE: Remove all logs associated with this task
+    this.data.logs = this.data.logs.filter(l => l.taskId !== taskId);
+    
     this.save().catch(console.error);
     return true;
   }
@@ -200,7 +214,16 @@ export class StorageManager {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const completedLogs = this.data.logs.filter(l => l.completed && l.type === 'work');
+    // Get set of valid task IDs to filter out logs for deleted tasks
+    const validTaskIds = new Set(this.data.tasks.map(t => t.id));
+    
+    // Filter logs: only completed work logs for existing tasks
+    const completedLogs = this.data.logs.filter(l => 
+      l.completed && 
+      l.type === 'work' && 
+      validTaskIds.has(l.taskId)  // Only count logs for tasks that still exist
+    );
+    
     const totalWorkMinutes = completedLogs.reduce((sum, l) => sum + l.duration, 0) / 60;
     
     const uniqueDates = new Set(

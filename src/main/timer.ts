@@ -151,13 +151,11 @@ export class TimerManager extends EventEmitter {
   postpone(): boolean {
     // 只能在休息阶段推迟
     if (this.state.phase !== 'short_break' && this.state.phase !== 'long_break') {
-      console.log('[TimerManager] Cannot postpone: not in break phase');
       return false;
     }
 
     // 检查推迟次数限制
     if (this.postponeCount >= this.settings.postponeLimit) {
-      console.log('[TimerManager] Cannot postpone: limit reached');
       return false;
     }
 
@@ -165,13 +163,11 @@ export class TimerManager extends EventEmitter {
     const elapsed = this.state.totalTime - this.state.timeRemaining;
     const percentElapsed = (elapsed / this.state.totalTime) * 100;
     if (percentElapsed >= this.settings.postponeDelayPercent) {
-      console.log('[TimerManager] Cannot postpone: time limit exceeded');
       return false;
     }
 
     // 增加推迟计数
     this.postponeCount++;
-    console.log(`[TimerManager] Break postponed (${this.postponeCount}/${this.settings.postponeLimit})`);
 
     // 停止休息计时
     this.stopTicking();
@@ -188,7 +184,6 @@ export class TimerManager extends EventEmitter {
     const postponeMs = this.settings.postponeMinutes * 60 * 1000;
     
     this.postponeTimeoutId = setTimeout(() => {
-      console.log('[TimerManager] Postpone period ended, resuming break');
       this.resumeBreakAfterPostpone();
     }, postponeMs);
 
@@ -271,18 +266,13 @@ export class TimerManager extends EventEmitter {
   }
 
   private handleTimerComplete(): void {
-    console.log(`[TimerManager] handleTimerComplete() called, phase: ${this.state.phase}`);
-    
     this.stopTicking();
     
     const completedPhase = this.state.phase;
     const taskId = this.state.currentTaskId;
-    
-    console.log(`[TimerManager] completedPhase: ${completedPhase}, taskId: ${taskId}`);
 
     if (completedPhase === 'work') {
       this.state.pomodorosCompleted++;
-      console.log(`[TimerManager] Incremented pomodorosCompleted to: ${this.state.pomodorosCompleted}`);
       this.saveCompletedLog();
       // 增加任务计数
       if (taskId) {
@@ -290,33 +280,23 @@ export class TimerManager extends EventEmitter {
       }
     }
 
-    console.log(`[TimerManager] Emitting 'complete' event`);
     this.emit('complete', completedPhase, taskId);
-    console.log(`[TimerManager] Calling transitionToNextPhase()`);
     this.transitionToNextPhase();
-    console.log(`[TimerManager] handleTimerComplete() finished`);
   }
 
   private transitionToNextPhase(): void {
-    console.log(`[TimerManager] transitionToNextPhase() called, current phase: ${this.state.phase}`);
-    
     this.settings = this.storage.getSettings();
 
     if (this.state.phase === 'work') {
-      console.log(`[TimerManager] Transitioning from work to break`);
-      console.log(`[TimerManager] pomodorosCompleted: ${this.state.pomodorosCompleted}, longBreakInterval: ${this.settings.longBreakInterval}`);
-      
       // 进入休息阶段前重置推迟计数
       this.resetPostponeCount();
       
       if (this.state.pomodorosCompleted % this.settings.longBreakInterval === 0) {
         this.state.phase = 'long_break';
         this.state.totalTime = this.settings.longBreakDuration * 60;
-        console.log(`[TimerManager] Starting LONG break (${this.settings.longBreakDuration} min)`);
       } else {
         this.state.phase = 'short_break';
         this.state.totalTime = this.settings.shortBreakDuration * 60;
-        console.log(`[TimerManager] Starting SHORT break (${this.settings.shortBreakDuration} min)`);
       }
       
       this.state.timeRemaining = this.state.totalTime;
@@ -324,14 +304,11 @@ export class TimerManager extends EventEmitter {
       this.sessionStartTime = new Date().toISOString();
       
       const breakType = this.state.phase === 'long_break' ? 'long_break' : 'short_break';
-      console.log(`[TimerManager] Emitting 'break-start' event with type: ${breakType}`);
       this.emit('break-start', breakType);
-      console.log(`[TimerManager] 'break-start' event emitted`);
       
       // 休息阶段自动开始倒计时（默认行为）
       this.state.isRunning = true;
       this.startTicking();
-      console.log(`[TimerManager] Break timer started`);
     } else {
       // 离开休息阶段时重置推迟计数
       this.resetPostponeCount();

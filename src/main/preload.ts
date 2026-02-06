@@ -109,6 +109,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   breakSkip: () => ipcRenderer.invoke('break-skip'),
   getBreakSettings: () => ipcRenderer.invoke('get-break-settings'),
 
+  // Stretchly-style break window APIs
+  getBreakData: () => ipcRenderer.invoke('send-break-data'),
+  finishBreak: () => ipcRenderer.invoke('finish-break'),
+  postponeBreak: () => ipcRenderer.invoke('postpone-break'),
+  signalBreakLoaded: () => ipcRenderer.invoke('break-loaded'),
+  
   // 移除监听器
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel)

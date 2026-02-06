@@ -160,7 +160,7 @@ class PomodoroApp {
       this.showNotification(title, body);
     });
 
-    // 休息窗口动作处理
+    // 休息窗口动作处理 - Stretchly style
     ipcMain.handle('break-complete', () => {
       this.handleBreakComplete();
       return true;
@@ -172,6 +172,27 @@ class PomodoroApp {
 
     ipcMain.handle('break-skip', () => {
       this.handleBreakSkip();
+      return true;
+    });
+
+    // Stretchly-style break window IPC
+    ipcMain.handle('finish-break', () => {
+      this.breakWindows.finishBreak(true);
+      // 通知计时器休息已完成
+      if (this.timer.getState().phase === 'short_break' || this.timer.getState().phase === 'long_break') {
+        this.timer.completeBreak();
+      }
+      return true;
+    });
+
+    ipcMain.handle('postpone-break', () => {
+      this.breakWindows.postponeBreak();
+      // 推迟后暂停计时器，稍后再恢复
+      this.timer.postpone?.();
+      return true;
+    });
+
+    ipcMain.handle('break-loaded', () => {
       return true;
     });
 
@@ -307,36 +328,24 @@ class PomodoroApp {
    * 处理休息开始
    */
   private handleBreakStart(breakType: 'short_break' | 'long_break'): void {
-    console.log(`[PomodoroApp] ==========================================`);
-    console.log(`[PomodoroApp] handleBreakStart() called with breakType=${breakType}`);
-    
     const settings = this.storage.getSettings();
-    
-    console.log(`[PomodoroApp] Settings - fullscreen: ${settings.fullscreenBreak}, allScreens: ${settings.allScreensBreak}`);
-    console.log(`[PomodoroApp] breakWindows object:`, this.breakWindows);
-    console.log(`[PomodoroApp] breakWindows.show method exists:`, typeof this.breakWindows.show === 'function');
     
     try {
       // 显示休息窗口（传递设置）
-      console.log('[PomodoroApp] Calling breakWindows.show()...');
       this.breakWindows.show(breakType, settings);
-      console.log('[PomodoroApp] breakWindows.show() completed successfully');
     } catch (error) {
       console.error('[PomodoroApp] Error in breakWindows.show():', error);
     }
     
     // 注册休息期间的快捷键
     try {
-      console.log('[PomodoroApp] Registering break shortcuts...');
       this.shortcuts.registerBreakShortcuts(this);
-      console.log('[PomodoroApp] Break shortcuts registered');
     } catch (error) {
       console.error('[PomodoroApp] Error registering shortcuts:', error);
     }
     
     // 发送通知
     try {
-      console.log('[PomodoroApp] Sending notification...');
       this.showNotification(
         breakType === 'short_break' ? '短休息开始' : '长休息开始',
         '请放下工作，好好休息一下吧！'
@@ -344,17 +353,12 @@ class PomodoroApp {
     } catch (error) {
       console.error('[PomodoroApp] Error sending notification:', error);
     }
-    
-    console.log(`[PomodoroApp] handleBreakStart() completed`);
-    console.log(`[PomodoroApp] ==========================================`);
   }
 
   /**
    * 处理休息结束
    */
   private handleBreakEnd(): void {
-    console.log('[PomodoroApp] Break ended');
-    
     // 隐藏休息窗口
     this.breakWindows.hide();
     
@@ -369,8 +373,6 @@ class PomodoroApp {
    * 处理休息完成
    */
   private handleBreakComplete(): void {
-    console.log('[PomodoroApp] Break completed by user');
-    
     // 隐藏休息窗口
     this.breakWindows.hide();
     
@@ -396,8 +398,6 @@ class PomodoroApp {
     const success = this.timer.postpone();
     
     if (success) {
-      console.log('[PomodoroApp] Break postponed');
-      
       // 隐藏休息窗口但保持计时器状态
       this.breakWindows.hide();
       
@@ -419,8 +419,6 @@ class PomodoroApp {
    * 处理跳过休息
    */
   private handleBreakSkip(): void {
-    console.log('[PomodoroApp] Break skipped');
-    
     // 隐藏休息窗口
     this.breakWindows.hide();
     
