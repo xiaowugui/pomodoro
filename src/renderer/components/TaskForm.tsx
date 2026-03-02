@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 import { useAppStore } from '../stores';
-import { Task } from '@shared/types.ts';
+import { Task } from '@shared/types';
 
 interface TaskFormProps {
   task?: Task | null;
@@ -33,7 +33,7 @@ export default function TaskForm({
   
   useEffect(() => {
     titleInputRef.current?.focus();
-  }, [title]);
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -90,7 +90,11 @@ export default function BreakPage() {
 
     return () => {
       // 清理事件监听
-      // 注意：实际清理逻辑取决于 electronAPI 的实现
+      if (window.electronAPI?.removeAllListeners) {
+        window.electronAPI.removeAllListeners('break-tick');
+        window.electronAPI.removeAllListeners('break-postpone-count');
+        window.electronAPI.removeAllListeners('break-strict-mode');
+      }
     };
   }, []);
 

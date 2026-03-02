@@ -11,10 +11,18 @@ export default function TasksPage() {
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadAllData();
-  }, [loadAllData]);
+    // 只在组件挂载时加载数据
+    const loadData = async () => {
+      setIsLoading(true);
+      await loadAllData();
+      setIsLoading(false);
+    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateTask = () => {
     setEditingTask(null);

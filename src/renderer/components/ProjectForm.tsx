@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useAppStore } from '../stores';
-import { Project } from '@shared/types.ts';
+import { Project } from '@shared/types';
 
 const PRESET_COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e',
@@ -36,7 +36,7 @@ export default function ProjectForm({
   
   useEffect(() => {
     nameInputRef.current?.focus();
-  }, [name]);
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

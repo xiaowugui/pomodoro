@@ -78,16 +78,27 @@ export default function StatsChart({ type, days = 7 }: StatsChartProps) {
         }
         
         case 'projects': {
-          // 为项目分配颜色
+          // 为项目分配颜色 - 优先使用任务的 completedPomodoros
           const projectStats = projects.map((project, index) => {
+            // 获取该项目的所有任务
+            const projectTasks = tasks.filter((t) => t.projectId === project.id);
+            // 从任务的 completedPomodoros 计算（更准确）
+            const pomodorosFromTasks = projectTasks.reduce((sum, t) => sum + (t.completedPomodoros || 0), 0);
+            
+            // 从日志计算作为备选
             const projectLogs = logs.filter(
               (log) => log.projectId === project.id && log.completed && log.type === 'work'
             );
+            const pomodorosFromLogs = projectLogs.length;
+            
+            // 使用较大值确保准确性
+            const value = Math.max(pomodorosFromTasks, pomodorosFromLogs);
+            
             // 使用项目颜色或从默认颜色数组中获取
             const color = project.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
             return {
               name: project.name,
-              value: projectLogs.length,
+              value: value,
               color: color,
               minutes: Math.round(projectLogs.reduce((sum, log) => sum + log.duration, 0) / 60),
             };

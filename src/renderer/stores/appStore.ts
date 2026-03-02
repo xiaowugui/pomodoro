@@ -286,9 +286,20 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // 从任务的 completedPomodoros 计算总番茄钟数（更准确）
+    const totalPomodorosFromTasks = tasks.reduce((sum, t) => sum + (t.completedPomodoros || 0), 0);
+    
+    // 从日志计算作为备选
     const completedLogs = logs.filter((l) => l.completed && l.type === 'work');
+    const totalPomodorosFromLogs = completedLogs.length;
+    
+    // 使用任务数据作为主要来源，如果不一致则使用较大值
+    const totalPomodoros = Math.max(totalPomodorosFromTasks, totalPomodorosFromLogs);
+    
+    // 计算总工作时长（分钟）
     const totalWorkMinutes = completedLogs.reduce((sum, l) => sum + l.duration, 0) / 60;
 
+    // 从日志计算连续天数（因为只有日志有时间信息）
     const uniqueDates = new Set(
       completedLogs.map((l) => new Date(l.startTime).toDateString())
     );
@@ -310,7 +321,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     }
 
     return {
-      totalPomodoros: completedLogs.length,
+      totalPomodoros,
       totalWorkMinutes: Math.round(totalWorkMinutes),
       completedTasks: tasks.filter((t) => t.status === 'completed').length,
       streakDays,

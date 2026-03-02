@@ -29,6 +29,7 @@ export default function StatsPage() {
     );
   }
 
+  // Get stats directly from store without subscribing to prevent infinite re-renders
   const stats = useAppStore.getState().getStats();
 
   const handleExportToCSV = () => {
