@@ -13,6 +13,7 @@ export class BreakWindowManager {
   private breakDuration: number = 0;
   private startTime: number = 0;
   private postponesNumber: number = 0;
+  private onBreakCompleteCallback: (() => void) | null = null;
 
   constructor() {
     // Stretchly 使用数组来管理多窗口
@@ -580,6 +581,13 @@ export class BreakWindowManager {
   }
 
   /**
+   * 设置休息完成回调
+   */
+  setOnBreakComplete(callback: () => void): void {
+    this.onBreakCompleteCallback = callback;
+  }
+
+  /**
    * 更新倒计时显示 - 广播到所有休息窗口
    * 修复：实现真实的计时更新，让渲染进程能收到倒计时
    */
@@ -618,6 +626,10 @@ export class BreakWindowManager {
     if (timeRemaining === 0) {
       setTimeout(() => {
         this.finishBreak(true);
+        // 通知计时器休息已完成
+        if (this.onBreakCompleteCallback) {
+          this.onBreakCompleteCallback();
+        }
       }, 1000); // 延迟1秒让用户看到0:00
     }
   }

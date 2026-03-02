@@ -30,6 +30,13 @@ class PomodoroApp {
     
     // 设置breakWindows引用用于事件传递
     this.timer.setBreakWindowsManager(this.breakWindows as any);
+    
+    // 设置休息完成回调 - 当休息窗口自动关闭时通知计时器
+    this.breakWindows.setOnBreakComplete(() => {
+      if (this.timer.getState().phase === 'short_break' || this.timer.getState().phase === 'long_break') {
+        this.timer.completeBreak();
+      }
+    });
   }
 
   async initialize(): Promise<void> {
