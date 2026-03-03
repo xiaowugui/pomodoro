@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Project, Task, PomodoroLog } from '@shared/types.ts';
+import { Project, Task, PomodoroLog, TaskDayExecution } from '@shared/types.ts';
 
 declare global {
   interface Window {
@@ -13,6 +13,12 @@ declare global {
       updateTask: (task: any) => Promise<Task>;
       deleteTask: (id: string) => Promise<boolean>;
       getLogs: () => Promise<PomodoroLog[]>;
+      getDayExecutions: () => Promise<TaskDayExecution[]>;
+      getDayExecutionsByDate: (date: string) => Promise<TaskDayExecution[]>;
+      getDayExecutionsByTask: (taskId: string) => Promise<TaskDayExecution[]>;
+      createDayExecution: (execution: any) => Promise<TaskDayExecution>;
+      updateDayExecution: (execution: any) => Promise<TaskDayExecution>;
+      deleteDayExecution: (id: string) => Promise<boolean>;
     };
   }
 }
@@ -22,6 +28,7 @@ interface AppStoreState {
   projects: Project[];
   tasks: Task[];
   logs: PomodoroLog[];
+  dayExecutions: TaskDayExecution[];
   
   // Loading states
   isLoading: boolean;
@@ -45,6 +52,11 @@ interface AppStoreState {
   createLog: (log: Omit<PomodoroLog, 'id'>) => Promise<PomodoroLog>;
   updateLog: (log: PomodoroLog) => Promise<PomodoroLog>;
   
+  // Actions - Day Executions
+  loadDayExecutions: () => Promise<void>;
+  getTasksByDate: (date: string) => Task[];
+  getDailySummary: (date: string) => { totalPomodoros: number; totalMinutes: number; taskCount: number };
+  
   // Actions - Data management
   loadAllData: () => Promise<void>;
   getTasksByProject: (projectId: string) => Task[];
@@ -63,8 +75,11 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   projects: [],
   tasks: [],
   logs: [],
+  dayExecutions: [],
   isLoading: false,
   error: null,
+
+
 
   // Projects
   loadProjects: async () => {
@@ -245,20 +260,51 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   loadAllData: async () => {
     set({ isLoading: true, error: null });
     try {
-      const [projects, tasks, logs] = await Promise.all([
+      const [projects, tasks, logs, dayExecutions] = await Promise.all([
         window.electronAPI.getProjects(),
         window.electronAPI.getTasks(),
         window.electronAPI.getLogs(),
+        window.electronAPI.getDayExecutions(),
       ]);
       set({
         projects,
         tasks,
         logs,
+        dayExecutions,
         isLoading: false,
       });
     } catch (error) {
       set({ error: String(error), isLoading: false });
     }
+  },
+
+  // Day Executions
+  loadDayExecutions: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const dayExecutions = await window.electronAPI.getDayExecutions();
+      set({ dayExecutions, isLoading: false });
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+    }
+  },
+
+  getTasksByDate: (date: string) => {
+    const { dayExecutions, tasks } = get();
+    const executionTaskIds = dayExecutions
+      .filter(de => de.date === date)
+      .map(de => de.taskId);
+    return tasks.filter(t => executionTaskIds.includes(t.id));
+  },
+
+  getDailySummary: (date: string) => {
+    const { dayExecutions } = get();
+    const dayRecords = dayExecutions.filter(de => de.date === date);
+    return {
+      totalPomodoros: dayRecords.reduce((sum, de) => sum + de.pomodorosCompleted, 0),
+      totalMinutes: dayRecords.reduce((sum, de) => sum + de.minutesWorked, 0),
+      taskCount: dayRecords.length,
+    };
   },
 
   getTasksByProject: (projectId) => {

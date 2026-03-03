@@ -23,6 +23,14 @@ const IPC_CHANNELS = {
   GET_LOGS: 'get-logs',
   CREATE_LOG: 'create-log',
   UPDATE_LOG: 'update-log',
+  // 任务每日执行
+  GET_DAY_EXECUTIONS: 'get-day-executions',
+  GET_DAY_EXECUTIONS_BY_DATE: 'get-day-executions-by-date',
+  GET_DAY_EXECUTIONS_BY_TASK: 'get-day-executions-by-task',
+  CREATE_DAY_EXECUTION: 'create-day-execution',
+  UPDATE_DAY_EXECUTION: 'update-day-execution',
+  DELETE_DAY_EXECUTION: 'delete-day-execution',
+
 
   // 计时器控制
   TIMER_START: 'timer-start',
@@ -63,6 +71,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getLogs: () => ipcRenderer.invoke(IPC_CHANNELS.GET_LOGS),
   createLog: (log: any) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_LOG, log),
   updateLog: (log: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_LOG, log),
+  // 任务每日执行
+  getDayExecutions: () => ipcRenderer.invoke(IPC_CHANNELS.GET_DAY_EXECUTIONS),
+  getDayExecutionsByDate: (date: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_DAY_EXECUTIONS_BY_DATE, date),
+  getDayExecutionsByTask: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_DAY_EXECUTIONS_BY_TASK, taskId),
+  createDayExecution: (execution: any) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_DAY_EXECUTION, execution),
+  updateDayExecution: (execution: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_DAY_EXECUTION, execution),
+  deleteDayExecution: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_DAY_EXECUTION, id),
+
 
   // 计时器控制
   timerStart: (data: any) => ipcRenderer.invoke(IPC_CHANNELS.TIMER_START, data),

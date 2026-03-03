@@ -138,7 +138,7 @@ export class TimerManager extends EventEmitter {
       this.saveCompletedLog();
       // 增加任务计数
       if (this.state.currentTaskId) {
-        this.incrementTaskPomodoro(this.state.currentTaskId);
+        this.incrementTaskPomodoro(this.state.currentTaskId, this.state.totalTime);
       }
     }
 
@@ -276,7 +276,7 @@ export class TimerManager extends EventEmitter {
       this.saveCompletedLog();
       // 增加任务计数
       if (taskId) {
-        this.incrementTaskPomodoro(taskId);
+        this.incrementTaskPomodoro(taskId, this.state.totalTime);
       }
     }
 
@@ -381,14 +381,59 @@ export class TimerManager extends EventEmitter {
     return task?.projectId || '';
   }
 
-  private incrementTaskPomodoro(taskId: string): void {
+  private incrementTaskPomodoro(taskId: string, duration: number): void {
     const tasks = this.storage.getTasks();
     const task = tasks.find(t => t.id === taskId);
     if (task) {
       task.completedPomodoros = (task.completedPomodoros || 0) + 1;
       this.storage.updateTask(task);
+      
+      // Record day execution
+      this.recordDayExecution(taskId, duration);
     }
   }
+
+  private recordDayExecution(taskId: string, duration: number): void {
+    if (!taskId) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const pomodorosCompleted = 1;
+    const minutesWorked = Math.round(duration / 60);
+    
+    // Check if existing record exists
+    const existingRecord = this.storage.getDayExecutionByTaskAndDate(taskId, today);
+    
+    if (existingRecord) {
+      // Update existing record
+      this.storage.updateDayExecution({
+        ...existingRecord,
+        pomodorosCompleted: existingRecord.pomodorosCompleted + pomodorosCompleted,
+        minutesWorked: existingRecord.minutesWorked + minutesWorked,
+      });
+    } else {
+      // Create new record
+      this.storage.createDayExecution({
+        taskId,
+        date: today,
+        pomodorosCompleted,
+        minutesWorked,
+      });
+    }
+    
+    // Update task's workDates
+    const tasks = this.storage.getTasks();
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      const workDates = task.workDates || [];
+      if (!workDates.includes(today)) {
+        this.storage.updateTask({
+          ...task,
+          workDates: [...workDates, today],
+        });
+      }
+    }
+  }
+
 
   getState(): TimerState {
     return { ...this.state };

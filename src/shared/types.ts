@@ -16,6 +16,17 @@ export interface Task {
   status: 'active' | 'completed';
   createdAt: string;
   completedAt?: string;
+  workDates: string[];  // 任务执行过的日期列表 YYYY-MM-DD
+}
+
+// 任务每日执行记录
+export interface TaskDayExecution {
+  id: string;
+  taskId: string;
+  date: string;              // YYYY-MM-DD 格式
+  pomodorosCompleted: number;
+  minutesWorked: number;
+  createdAt: string;
 }
 
 // 番茄钟记录
@@ -122,6 +133,7 @@ export interface AppState {
   projects: Project[];
   tasks: Task[];
   logs: PomodoroLog[];
+  dayExecutions: TaskDayExecution[];
 }
 
 // 番茄钟计时器状态
@@ -164,6 +176,15 @@ export const IPC_CHANNELS = {
   CREATE_LOG: 'create-log',
   UPDATE_LOG: 'update-log',
   
+  // 任务每日执行
+  GET_DAY_EXECUTIONS: 'get-day-executions',
+  GET_DAY_EXECUTIONS_BY_DATE: 'get-day-executions-by-date',
+  GET_DAY_EXECUTIONS_BY_TASK: 'get-day-executions-by-task',
+  CREATE_DAY_EXECUTION: 'create-day-execution',
+  UPDATE_DAY_EXECUTION: 'update-day-execution',
+  DELETE_DAY_EXECUTION: 'delete-day-execution',
+
+
   // 计时器控制
   TIMER_START: 'timer-start',
   TIMER_PAUSE: 'timer-pause',

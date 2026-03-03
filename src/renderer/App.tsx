@@ -6,6 +6,7 @@ import TimerPage from './pages/TimerPage'
 import TasksPage from './pages/TasksPage'
 import StatsPage from './pages/StatsPage'
 import SettingsPage from './pages/SettingsPage'
+import DailyViewPage from './pages/DailyViewPage'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -34,6 +35,7 @@ function App() {
       <Route path="/" element={<Navigate to="/timer" replace />} />
       <Route path="/timer" element={<TimerPage />} />
       <Route path="/tasks" element={<TasksPage />} />
+      <Route path="/daily" element={<DailyViewPage />} />
       <Route path="/stats" element={<StatsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
     </Routes>

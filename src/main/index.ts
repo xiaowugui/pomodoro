@@ -6,7 +6,7 @@ import { BreakWindowManager } from './windows/break-window';
 import { TrayManager } from './tray';
 import { ShortcutsManager } from './shortcuts';
 import { TimerManager } from './timer';
-import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, defaultSettings } from '../shared/types';
+import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, TaskDayExecution, defaultSettings } from '../shared/types';
 
 /**
  * PomodoroApp - 主应用类
@@ -148,6 +148,32 @@ class PomodoroApp {
     ipcMain.handle(IPC_CHANNELS.UPDATE_LOG, (_, log: PomodoroLog) => {
       return this.storage.updateLog(log);
     });
+
+    // 任务每日执行
+    ipcMain.handle(IPC_CHANNELS.GET_DAY_EXECUTIONS, () => {
+      return this.storage.getDayExecutions();
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_DAY_EXECUTIONS_BY_DATE, (_, date: string) => {
+      return this.storage.getDayExecutionByDate(date);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_DAY_EXECUTIONS_BY_TASK, (_, taskId: string) => {
+      return this.storage.getDayExecutionByTask(taskId);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.CREATE_DAY_EXECUTION, (_, execution: Omit<TaskDayExecution, 'id' | 'createdAt'>) => {
+      return this.storage.createDayExecution(execution);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.UPDATE_DAY_EXECUTION, (_, execution: TaskDayExecution) => {
+      return this.storage.updateDayExecution(execution);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.DELETE_DAY_EXECUTION, (_, executionId: string) => {
+      return this.storage.deleteDayExecution(executionId);
+    });
+
 
     // 窗口控制
     ipcMain.handle(IPC_CHANNELS.SHOW_MAIN_WINDOW, () => {

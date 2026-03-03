@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
-import { Settings, Project, Task, PomodoroLog, AppState, defaultSettings } from '../shared/types';
+import { Settings, Project, Task, PomodoroLog, AppState, defaultSettings, TaskDayExecution } from '../shared/types';
 
 const DATA_FILE_NAME = 'data.json';
 
@@ -16,6 +16,7 @@ export class StorageManager {
       projects: [],
       tasks: [],
       logs: [],
+      dayExecutions: [],
     };
   }
 
@@ -36,6 +37,7 @@ export class StorageManager {
       projects: parsed.projects || [],
       tasks: parsed.tasks || [],
       logs: parsed.logs || [],
+      dayExecutions: parsed.dayExecutions || [],
     };
   }
 
@@ -93,18 +95,13 @@ export class StorageManager {
       return false;
     }
     
-    // Get all task IDs that belong to this project before deleting them
     const tasksToDelete = this.data.tasks.filter(t => t.projectId === projectId);
     const taskIdsToDelete = tasksToDelete.map(t => t.id);
     
-    // Remove the project
     this.data.projects.splice(index, 1);
-    
-    // Remove tasks belonging to this project
     this.data.tasks = this.data.tasks.filter(t => t.projectId !== projectId);
-    
-    // CASCADE DELETE: Remove all logs for tasks in this project
     this.data.logs = this.data.logs.filter(l => !taskIdsToDelete.includes(l.taskId));
+    this.data.dayExecutions = this.data.dayExecutions.filter(de => !taskIdsToDelete.includes(de.taskId));
     
     this.save().catch(console.error);
     return true;
@@ -123,6 +120,7 @@ export class StorageManager {
       ...task,
       id: this.generateId(),
       createdAt: new Date().toISOString(),
+      workDates: task.workDates || [],
     };
     this.data.tasks.push(newTask);
     this.save().catch(console.error);
@@ -145,11 +143,9 @@ export class StorageManager {
       return false;
     }
     
-    // Remove the task
     this.data.tasks.splice(index, 1);
-    
-    // CASCADE DELETE: Remove all logs associated with this task
     this.data.logs = this.data.logs.filter(l => l.taskId !== taskId);
+    this.data.dayExecutions = this.data.dayExecutions.filter(de => de.taskId !== taskId);
     
     this.save().catch(console.error);
     return true;
@@ -205,6 +201,58 @@ export class StorageManager {
     return true;
   }
 
+  // ===== TaskDayExecution CRUD =====
+  getDayExecutions(): TaskDayExecution[] {
+    return [...this.data.dayExecutions];
+  }
+
+  getDayExecutionByDate(date: string): TaskDayExecution[] {
+    return this.data.dayExecutions.filter(de => de.date === date);
+  }
+
+  getDayExecutionByTask(taskId: string): TaskDayExecution[] {
+    return this.data.dayExecutions.filter(de => de.taskId === taskId);
+  }
+
+  getDayExecutionByTaskAndDate(taskId: string, date: string): TaskDayExecution | undefined {
+    return this.data.dayExecutions.find(de => de.taskId === taskId && de.date === date);
+  }
+
+  createDayExecution(execution: Omit<TaskDayExecution, 'id' | 'createdAt'>): TaskDayExecution {
+    const newExecution: TaskDayExecution = {
+      ...execution,
+      id: this.generateId(),
+      createdAt: new Date().toISOString(),
+    };
+    this.data.dayExecutions.push(newExecution);
+    this.save().catch(console.error);
+    return newExecution;
+  }
+
+  updateDayExecution(execution: TaskDayExecution): TaskDayExecution {
+    const index = this.data.dayExecutions.findIndex(de => de.id === execution.id);
+    if (index === -1) {
+      throw new Error(`DayExecution not found: ${execution.id}`);
+    }
+    this.data.dayExecutions[index] = { ...execution };
+    this.save().catch(console.error);
+    return this.data.dayExecutions[index];
+  }
+
+  deleteDayExecution(executionId: string): boolean {
+    const index = this.data.dayExecutions.findIndex(de => de.id === executionId);
+    if (index === -1) {
+      return false;
+    }
+    this.data.dayExecutions.splice(index, 1);
+    this.save().catch(console.error);
+    return true;
+  }
+
+  getDayExecutionsByDateRange(startDate: string, endDate: string): TaskDayExecution[] {
+    return this.data.dayExecutions.filter(de => de.date >= startDate && de.date <= endDate);
+  }
+
   getStats(): {
     totalPomodoros: number;
     totalWorkMinutes: number;
@@ -214,14 +262,12 @@ export class StorageManager {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Get set of valid task IDs to filter out logs for deleted tasks
     const validTaskIds = new Set(this.data.tasks.map(t => t.id));
     
-    // Filter logs: only completed work logs for existing tasks
     const completedLogs = this.data.logs.filter(l => 
       l.completed && 
       l.type === 'work' && 
-      validTaskIds.has(l.taskId)  // Only count logs for tasks that still exist
+      validTaskIds.has(l.taskId)
     );
     
     const totalWorkMinutes = completedLogs.reduce((sum, l) => sum + l.duration, 0) / 60;
@@ -264,6 +310,7 @@ export class StorageManager {
       projects: data.projects || [],
       tasks: data.tasks || [],
       logs: data.logs || [],
+      dayExecutions: data.dayExecutions || [],
     };
     await this.save();
   }
