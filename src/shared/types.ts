@@ -17,6 +17,9 @@ export interface Task {
   createdAt: string;
   completedAt?: string;
   workDates: string[];  // 任务执行过的日期列表 YYYY-MM-DD
+  // 四象限优先级
+  isImportant: boolean;  // 是否重要
+  isUrgent: boolean;     // 是否紧急
 }
 
 // 任务每日执行记录

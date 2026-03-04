@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, AlertCircle, Clock, CheckSquare, Square } from 'lucide-react';
 import { useAppStore } from '../stores';
 import { Task } from '@shared/types';
 
@@ -20,6 +20,8 @@ export default function TaskForm({
   const [title, setTitle] = useState(task?.title || '');
   const [projectId, setProjectId] = useState(task?.projectId || defaultProjectId || '');
   const [estimatedPomodoros, setEstimatedPomodoros] = useState(task?.estimatedPomodoros || 1);
+  const [isImportant, setIsImportant] = useState(task?.isImportant ?? false);
+  const [isUrgent, setIsUrgent] = useState(task?.isUrgent ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   
@@ -28,6 +30,8 @@ export default function TaskForm({
       setTitle(task.title);
       setProjectId(task.projectId);
       setEstimatedPomodoros(task.estimatedPomodoros);
+      setIsImportant(task.isImportant ?? false);
+      setIsUrgent(task.isUrgent ?? false);
     }
   }, [task]);
   
@@ -47,6 +51,8 @@ export default function TaskForm({
           title: title.trim(),
           projectId,
           estimatedPomodoros,
+          isImportant,
+          isUrgent,
         });
       } else {
         await createTask({
@@ -55,6 +61,8 @@ export default function TaskForm({
           estimatedPomodoros,
           completedPomodoros: 0,
           status: 'active',
+          isImportant,
+          isUrgent,
         });
       }
       onSubmit();
@@ -138,6 +146,90 @@ export default function TaskForm({
                 className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center"
               >
                 <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          {/* 四象限优先级选择 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              优先级（四象限）
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {/* 重要且紧急 - 第一象限 */}
+              <button
+                type="button"
+                onClick={() => { setIsImportant(true); setIsUrgent(true); }}
+                className={`p-3 rounded-lg border-2 flex items-center gap-2 transition-colors ${
+                  isImportant && isUrgent
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-700'
+                }`}
+              >
+                <AlertCircle className={`w-5 h-5 ${isImportant && isUrgent ? 'text-red-500' : 'text-gray-400'}`} />
+                <div className="text-left">
+                  <div className={`font-medium text-sm ${isImportant && isUrgent ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                    重要且紧急
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">立即执行</div>
+                </div>
+              </button>
+              
+              {/* 重要不紧急 - 第二象限 */}
+              <button
+                type="button"
+                onClick={() => { setIsImportant(true); setIsUrgent(false); }}
+                className={`p-3 rounded-lg border-2 flex items-center gap-2 transition-colors ${
+                  isImportant && !isUrgent
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-700'
+                }`}
+              >
+                <Clock className={`w-5 h-5 ${isImportant && !isUrgent ? 'text-blue-500' : 'text-gray-400'}`} />
+                <div className="text-left">
+                  <div className={`font-medium text-sm ${isImportant && !isUrgent ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                    重要不紧急
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">计划执行</div>
+                </div>
+              </button>
+              
+              {/* 不重要但紧急 - 第三象限 */}
+              <button
+                type="button"
+                onClick={() => { setIsImportant(false); setIsUrgent(true); }}
+                className={`p-3 rounded-lg border-2 flex items-center gap-2 transition-colors ${
+                  !isImportant && isUrgent
+                    ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-yellow-300 dark:hover:border-yellow-700'
+                }`}
+              >
+                <Clock className={`w-5 h-5 ${!isImportant && isUrgent ? 'text-yellow-500' : 'text-gray-400'}`} />
+                <div className="text-left">
+                  <div className={`font-medium text-sm ${!isImportant && isUrgent ? 'text-yellow-700 dark:text-yellow-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                    紧急不重要
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">委托他人</div>
+                </div>
+              </button>
+              
+              {/* 不重要不紧急 - 第四象限 */}
+              <button
+                type="button"
+                onClick={() => { setIsImportant(false); setIsUrgent(false); }}
+                className={`p-3 rounded-lg border-2 flex items-center gap-2 transition-colors ${
+                  !isImportant && !isUrgent
+                    ? 'border-gray-400 bg-gray-50 dark:bg-gray-700'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
+                }`}
+              >
+                <Square className={`w-5 h-5 ${!isImportant && !isUrgent ? 'text-gray-500' : 'text-gray-400'}`} />
+                <div className="text-left">
+                  <div className={`font-medium text-sm ${!isImportant && !isUrgent ? 'text-gray-700 dark:text-gray-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                    不重要不紧急
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">可删除</div>
+                </div>
               </button>
             </div>
           </div>

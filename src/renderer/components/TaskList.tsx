@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Clock, Trash2, Edit2, Play, MoreVertical } from 'lucide-react';
+import { Check, Clock, Trash2, Edit2, Play, MoreVertical, AlertCircle, Clock9 } from 'lucide-react';
 import { useAppStore } from '../stores';
 import { Task } from '@shared/types.ts';
 
@@ -39,6 +39,21 @@ export default function TaskList({
   const getProjectName = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     return project?.name || '无项目';
+  };
+  
+  // 获取任务优先级信息
+  const getPriorityInfo = (task: Task) => {
+    const isImportant = task.isImportant ?? false;
+    const isUrgent = task.isUrgent ?? false;
+    
+    if (isImportant && isUrgent) {
+      return { label: '紧急重要', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: AlertCircle };
+    } else if (isImportant && !isUrgent) {
+      return { label: '重要', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: Clock9 };
+    } else if (!isImportant && isUrgent) {
+      return { label: '紧急', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300', icon: AlertCircle };
+    }
+    return null;
   };
   
   const handleComplete = async (taskId: string) => {
@@ -102,12 +117,23 @@ export default function TaskList({
               }`}>
                 {task.title}
               </p>
-              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                 <span 
                   className="inline-block w-2 h-2 rounded-full"
                   style={{ backgroundColor: getProjectColor(task.projectId) }}
                 />
                 <span>{getProjectName(task.projectId)}</span>
+                {(() => {
+                  const priority = getPriorityInfo(task);
+                  if (!priority) return null;
+                  const Icon = priority.icon;
+                  return (
+                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded ${priority.color}`}>
+                      <Icon className="w-3 h-3" />
+                      {priority.label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
             
