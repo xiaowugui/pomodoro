@@ -3,6 +3,7 @@ import * as path from 'path';
 import { StorageManager } from './storage';
 import { MainWindowManager } from './windows/main-window';
 import { BreakWindowManager } from './windows/break-window';
+import { TaskNoteWindowManager } from './windows/task-note-window';
 import { TrayManager } from './tray';
 import { ShortcutsManager } from './shortcuts';
 import { TimerManager } from './timer';
@@ -16,6 +17,7 @@ class PomodoroApp {
   private storage: StorageManager;
   private mainWindow: MainWindowManager;
   private breakWindows: BreakWindowManager;
+  private taskNoteWindow: TaskNoteWindowManager;
   private tray: TrayManager;
   private shortcuts: ShortcutsManager;
   private timer: TimerManager;
@@ -24,6 +26,7 @@ class PomodoroApp {
     this.storage = new StorageManager();
     this.mainWindow = new MainWindowManager();
     this.breakWindows = new BreakWindowManager();
+    this.taskNoteWindow = new TaskNoteWindowManager();
     this.tray = new TrayManager();
     this.shortcuts = new ShortcutsManager();
     this.timer = new TimerManager(this.storage);
@@ -70,36 +73,54 @@ class PomodoroApp {
   }
 
   /**
+   * 获取开机启动的exe路径
+   * 打包后Electron会自动使用当前exe，无需指定path
+   */
+  private getAutoStartPath(): string | undefined {
+    // 打包后不需要指定path，Electron会自动使用当前exe
+    if (app.isPackaged) {
+      return undefined;
+    }
+    // 开发模式使用process.execPath
+    return process.execPath;
+  }
+
+  /**
    * 设置开机自动启动
    */
   private setupAutoStart(): void {
     const settings = this.storage.getSettings();
-    
-    if (process.platform === 'win32') {
-      app.setLoginItemSettings({
-        openAtLogin: settings.autoStartEnabled,
-        path: process.execPath,
-        args: ['--hidden'],
-      });
-    } else if (process.platform === 'darwin') {
-      app.setLoginItemSettings({
-        openAtLogin: settings.autoStartEnabled,
-        path: process.execPath,
-        args: ['--hidden'],
-      });
-    }
+    this.setAutoStart(settings.autoStartEnabled);
   }
 
   /**
    * 更新开机启动设置
    */
   private updateAutoStart(enabled: boolean): void {
+    this.setAutoStart(enabled);
+  }
+
+  /**
+   * 实际设置开机启动
+   */
+  private setAutoStart(enabled: boolean): void {
     if (process.platform === 'win32' || process.platform === 'darwin') {
-      app.setLoginItemSettings({
+      const exePath = this.getAutoStartPath();
+      
+      // 使用any绕过类型检查，因为Electron类型定义可能不完整
+      const options: any = {
         openAtLogin: enabled,
-        path: process.execPath,
-        args: ['--hidden'],
-      });
+      };
+      
+      // 仅在开发模式下指定path和args
+      if (exePath) {
+        options.path = exePath;
+        options.args = ['--hidden'];
+      }
+      
+      app.setLoginItemSettings(options);
+      
+      console.log(`[AutoStart] ${enabled ? 'Enabled' : 'Disabled'}, packaged: ${app.isPackaged}, path: ${exePath || 'auto'}`);
     }
   }
 
@@ -343,6 +364,22 @@ class PomodoroApp {
     ipcMain.handle(IPC_CHANNELS.TIMER_COMPLETE, () => {
       this.timer.complete();
     });
+
+    // 获取推迟状态
+    ipcMain.handle(IPC_CHANNELS.TIMER_POSTPONE_STATE, () => {
+      return this.timer.getPostponeState();
+    });
+
+    // 任务备注窗口控制
+    ipcMain.handle(IPC_CHANNELS.OPEN_TASK_NOTE_WINDOW, (_, taskId: string) => {
+      this.taskNoteWindow.show(taskId);
+      return true;
+    });
+
+    ipcMain.handle(IPC_CHANNELS.CLOSE_TASK_NOTE_WINDOW, (_, taskId: string) => {
+      this.taskNoteWindow.close(taskId);
+      return true;
+    });
   }
 
   private setupTimerEvents(): void {
@@ -394,6 +431,16 @@ class PomodoroApp {
     // 休息结束
     this.timer.on('break-end', () => {
       this.handleBreakEnd();
+    });
+
+    // 推迟开始 - 通知主窗口
+    this.timer.on('postpone-start', (postponeEndTime) => {
+      this.mainWindow.webContents?.send(IPC_CHANNELS.TIMER_POSTPONE_START, { postponeEndTime });
+    });
+
+    // 推迟结束 - 通知主窗口
+    this.timer.on('postpone-end', () => {
+      this.mainWindow.webContents?.send(IPC_CHANNELS.TIMER_POSTPONE_END);
     });
   }
 

@@ -1,13 +1,35 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Layout, TimerDisplay, TimerControls, TaskSelector } from '../components';
 import { useTimerStore, useAppStore, useSettingsStore } from '../stores';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Clock } from 'lucide-react';
 
 export default function TimerPage() {
-  const { initializeListeners, currentTaskId, phase, updateState } = useTimerStore();
+  const { initializeListeners, currentTaskId, phase, updateState, isPostponed, postponeEndTime, getFormattedPostponeTime } = useTimerStore();
   const { loadAllData, tasks } = useAppStore();
   const { loadSettings, initializeListeners: initSettingsListeners, pomodoroDuration, hasLoaded } = useSettingsStore();
   const prevPomodoroDuration = useRef(pomodoroDuration);
+  const [postponeTimeLeft, setPostponeTimeLeft] = useState('00:00');
+
+  // Update postpone time every second
+  useEffect(() => {
+    if (!isPostponed) {
+      setPostponeTimeLeft('00:00');
+      return;
+    }
+
+    const updatePostponeTime = () => {
+      if (postponeEndTime > 0) {
+        const remaining = Math.max(0, postponeEndTime - Date.now());
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        setPostponeTimeLeft(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+      }
+    };
+
+    updatePostponeTime();
+    const intervalId = setInterval(updatePostponeTime, 1000);
+    return () => clearInterval(intervalId);
+  }, [isPostponed, postponeEndTime]);
 
   // Get current task info
   const currentTask = useMemo(() => {
@@ -73,6 +95,15 @@ export default function TimerPage() {
           {/* Phase Title */}
           <div className="text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{phaseTitle}</p>
+            {/* Postpone countdown display */}
+            {isPostponed && (
+              <div className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  休息推迟中，倒计时 {postponeTimeLeft} 后继续
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Timer Display */}

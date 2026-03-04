@@ -29,6 +29,9 @@ declare global {
       addTaskLink: (noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>) => Promise<TaskLink>;
       updateTaskLink: (noteId: string, link: TaskLink) => Promise<TaskLink>;
       deleteTaskLink: (noteId: string, linkId: string) => Promise<boolean>;
+      // Task notes window
+      openTaskNoteWindow: (taskId: string) => Promise<boolean>;
+      closeTaskNoteWindow: (taskId: string) => Promise<boolean>;
     };
   }
 }

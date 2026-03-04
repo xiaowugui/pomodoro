@@ -9,6 +9,7 @@ interface TaskListProps {
   onEdit?: (task: Task) => void;
   onSelect?: (task: Task) => void;
   showFilters?: boolean;
+  onOpenNotes?: (taskId: string) => void;
 }
 
 export default function TaskList({ 
@@ -16,7 +17,8 @@ export default function TaskList({
   projectId, 
   onEdit, 
   onSelect,
-  showFilters = true 
+  showFilters = true,
+  onOpenNotes 
 }: TaskListProps) {
   const { tasks: allTasks, projects, completeTask, deleteTask } = useAppStore();
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -94,6 +96,7 @@ export default function TaskList({
             className={`group flex items-center gap-3 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-sm transition-shadow ${
               task.status === 'completed' ? 'opacity-60' : ''
             }`}
+            onDoubleClick={() => onOpenNotes?.(task.id)}
           >
             <button
               onClick={() => handleComplete(task.id)}

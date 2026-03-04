@@ -247,6 +247,15 @@ export const IPC_CHANNELS = {
   BREAK_POSTPONE: 'break-postpone',
   BREAK_COMPLETE: 'break-complete',
   BREAK_SKIP: 'break-skip',
+
+  // 推迟状态
+  TIMER_POSTPONE_STATE: 'timer-postpone-state',
+  TIMER_POSTPONE_START: 'timer-postpone-start',
+  TIMER_POSTPONE_END: 'timer-postpone-end',
+
+  // 任务备注窗口
+  OPEN_TASK_NOTE_WINDOW: 'open-task-note-window',
+  CLOSE_TASK_NOTE_WINDOW: 'close-task-note-window',
   
   // 窗口控制
   SHOW_MAIN_WINDOW: 'show-main-window',
