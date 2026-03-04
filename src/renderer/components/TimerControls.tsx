@@ -1,5 +1,5 @@
-import { Play, Pause, Square, CheckCircle } from 'lucide-react';
-import { useTimerStore } from '../stores';
+import { Play, Pause, Square, CheckCircle, CheckCircle2 } from 'lucide-react';
+import { useTimerStore, useAppStore } from '../stores';
 
 interface TimerControlsProps {
   size?: 'sm' | 'md' | 'lg';
@@ -7,6 +7,11 @@ interface TimerControlsProps {
 
 export default function TimerControls({ size = 'md' }: TimerControlsProps) {
   const { isRunning, phase, currentTaskId, start, pause, resume, stop, complete } = useTimerStore();
+  const { completeTask, tasks } = useAppStore();
+  
+  // Get current task to check if it's already completed
+  const currentTask = currentTaskId ? tasks.find(t => t.id === currentTaskId) : null;
+  const isTaskCompleted = currentTask?.status === 'completed';
   
   const sizeClasses = {
     sm: 'p-2',
@@ -28,6 +33,16 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
       pause();
     } else {
       resume();
+    }
+  };
+  
+  const handleCompleteTask = async () => {
+    if (currentTaskId && !isTaskCompleted) {
+      try {
+        await completeTask(currentTaskId);
+      } catch (error) {
+        console.error('Failed to complete task:', error);
+      }
     }
   };
   
@@ -64,8 +79,18 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
           <Play className={iconSizes[size]} fill="currentColor" />
         )}
       </button>
-      
 
+      {/* Complete Task button - shown when timer is idle and there's a current task that isn't completed */}
+      {phase === 'idle' && currentTaskId && !isTaskCompleted && (
+        <button
+          onClick={handleCompleteTask}
+          className={`${sizeClasses[size]} rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg`}
+          title="完成任务"
+        >
+          <CheckCircle2 className={iconSizes[size]} />
+        </button>
+      )}
+      
     </div>
   );
 }

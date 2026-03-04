@@ -93,7 +93,9 @@ function Calendar({ selectedDate, onSelectDate, datesWithTasks }: {
 }
 
 function DaySummary({ date }: { date: string }) {
-  const { getDailySummary, getTasksByDate, tasks } = useAppStore();
+  const { getDailySummary, getTasksByDate } = useAppStore();
+  const today = new Date().toISOString().split('T')[0];
+  const isToday = date === today;
   
   const summary = getDailySummary(date);
   const dateTasks = getTasksByDate(date);
@@ -135,9 +137,10 @@ function DaySummary({ date }: { date: string }) {
         </div>
       </div>
       
-      {activeTasks.length > 0 && (
+      {/* Only show active tasks for non-today dates (today tasks shown in TaskPlanner above) */}
+      {!isToday && activeTasks.length > 0 && (
         <div className="mt-6">
-          <h3 className="font-semibold mb-3 text-gray-500">今日待办 ({activeTasks.length})</h3>
+          <h3 className="font-semibold mb-3 text-gray-500">待办任务 ({activeTasks.length})</h3>
           <div className="space-y-2">
             {activeTasks.map(task => (
               <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -192,7 +195,7 @@ function TaskPlanner() {
     const project = projects.find(p => p.id === projectId);
     return project?.color || '#9CA3AF';
   };
-  
+
   const handleAddTask = async (taskId: string) => {
     await addTaskToToday(taskId);
   };
@@ -200,18 +203,22 @@ function TaskPlanner() {
   const handleRemoveTask = async (taskId: string) => {
     await removeTaskFromToday(taskId);
   };
-  
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
-  };
-  
+
+  // Calculate totals - count all active tasks for today that have completed all pomodoros
+  const allTodayTasks = [...todayPlannedTasks, ...unplannedTasks];
+  const totalTasks = allTodayTasks.length;
+  const completedCount = allTodayTasks.filter(
+    t => (t.completedPomodoros || 0) >= t.estimatedPomodoros
+  ).length;
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
       <div className="flex items-center gap-3 mb-4">
         <Target className="w-6 h-6 text-red-500" />
-        <h2 className="text-xl font-bold">今日计划</h2>
-        <span className="text-sm text-gray-500">({todayPlannedTasks.length})</span>
+        <h2 className="text-xl font-bold">今日任务</h2>
+        <span className="text-sm text-gray-500">
+          {completedCount}/{totalTasks} 完成
+        </span>
       </div>
       
       {/* Planned tasks */}
