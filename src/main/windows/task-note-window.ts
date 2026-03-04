@@ -54,10 +54,10 @@ export class TaskNoteWindowManager {
       this.noteWindows.delete(taskId);
     });
 
-    // 加载备注页面，带任务ID参数
+    // 加载备注弹窗页面，带任务ID参数
     const notesUrl = process.env.VITE_DEV_SERVER_URL
-      ? `${process.env.VITE_DEV_SERVER_URL}#/notes/${taskId}`
-      : `file://${path.join(__dirname, '../../renderer/index.html')}#/notes/${taskId}`;
+      ? `${process.env.VITE_DEV_SERVER_URL}#/note/${taskId}`
+      : `file://${path.join(__dirname, '../../renderer/index.html')}#/note/${taskId}`;
 
     noteWindow.loadURL(notesUrl);
 

@@ -125,6 +125,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getPostponeState: () => ipcRenderer.invoke('timer-postpone-state'),
 
+  // Data updated listener
+  onDataUpdated: (callback: () => void) => {
+    ipcRenderer.on('data-updated', () => callback())
+  },
+
   // 任务备注窗口
   openTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('open-task-note-window', taskId),
   closeTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('close-task-note-window', taskId),

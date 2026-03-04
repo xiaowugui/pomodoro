@@ -8,6 +8,7 @@ import StatsPage from './pages/StatsPage'
 import SettingsPage from './pages/SettingsPage'
 import DailyViewPage from './pages/DailyViewPage'
 import TaskNotesPage from './pages/TaskNotesPage'
+import TaskNotePopup from './pages/TaskNotePopup'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -40,7 +41,7 @@ function App() {
       <Route path="/stats" element={<StatsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/notes" element={<TaskNotesPage />} />
-      <Route path="/notes/:taskId" element={<TaskNotesPage />} />
+      <Route path="/note/:taskId" element={<TaskNotePopup />} />
     </Routes>
   )
 }

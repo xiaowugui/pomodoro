@@ -204,6 +204,13 @@ function TaskPlanner() {
     await removeTaskFromToday(taskId);
   };
 
+  // 打开任务备注窗口
+  const handleOpenTaskNotes = async (taskId: string) => {
+    if (window.electronAPI?.openTaskNoteWindow) {
+      await window.electronAPI.openTaskNoteWindow(taskId);
+    }
+  };
+
   // Calculate totals - count all active tasks for today that have completed all pomodoros
   const allTodayTasks = [...todayPlannedTasks, ...unplannedTasks];
   const totalTasks = allTodayTasks.length;
@@ -227,7 +234,11 @@ function TaskPlanner() {
           <h3 className="font-semibold mb-3 text-gray-500">已计划</h3>
           <div className="space-y-2">
             {todayPlannedTasks.map(task => (
-              <div key={task.id} className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <div 
+                key={task.id} 
+                className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40"
+                onDoubleClick={() => handleOpenTaskNotes(task.id)}
+              >
                 <div
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: getProjectColor(task.projectId) }}
@@ -265,7 +276,11 @@ function TaskPlanner() {
               <p className="text-sm text-gray-400 py-2">所有任务已添加到今日计划</p>
             ) : (
               unplannedTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                <div 
+                  key={task.id} 
+                  className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                  onDoubleClick={() => handleOpenTaskNotes(task.id)}
+                >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: getProjectColor(task.projectId) }}
