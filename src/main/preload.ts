@@ -19,6 +19,16 @@ const IPC_CHANNELS = {
   UPDATE_TASK: 'update-task',
   DELETE_TASK: 'delete-task',
 
+  // 任务备注
+  GET_TASK_NOTES: 'get-task-notes',
+  GET_TASK_NOTE_BY_TASK: 'get-task-note-by-task',
+  CREATE_TASK_NOTE: 'create-task-note',
+  UPDATE_TASK_NOTE: 'update-task-note',
+  DELETE_TASK_NOTE: 'delete-task-note',
+  ADD_TASK_LINK: 'add-task-link',
+  UPDATE_TASK_LINK: 'update-task-link',
+  DELETE_TASK_LINK: 'delete-task-link',
+
   // 番茄钟日志
   GET_LOGS: 'get-logs',
   CREATE_LOG: 'create-log',
@@ -66,6 +76,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createTask: (task: any) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_TASK, task),
   updateTask: (task: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_TASK, task),
   deleteTask: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_TASK, id),
+
+  // 任务备注
+  getTaskNotes: () => ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_NOTES),
+  getTaskNoteByTask: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_NOTE_BY_TASK, taskId),
+  createTaskNote: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_TASK_NOTE, taskId),
+  updateTaskNote: (note: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_TASK_NOTE, note),
+  deleteTaskNote: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_TASK_NOTE, id),
+  addTaskLink: (noteId: string, link: any) => ipcRenderer.invoke(IPC_CHANNELS.ADD_TASK_LINK, noteId, link),
+  updateTaskLink: (noteId: string, link: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_TASK_LINK, noteId, link),
+  deleteTaskLink: (noteId: string, linkId: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_TASK_LINK, noteId, linkId),
 
   // 日志
   getLogs: () => ipcRenderer.invoke(IPC_CHANNELS.GET_LOGS),

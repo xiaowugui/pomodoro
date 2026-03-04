@@ -6,6 +6,24 @@ export interface Project {
   createdAt: string;
 }
 
+// 任务备注 - 链接
+export interface TaskLink {
+  id: string;
+  title: string;
+  url: string;
+  createdAt: string;
+}
+
+// 任务备注
+export interface TaskNote {
+  id: string;
+  taskId: string;
+  content: string;        // 文本备注内容
+  links: TaskLink[];      // 关联链接
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 任务
 export interface Task {
   id: string;
@@ -140,6 +158,7 @@ export interface AppState {
   tasks: Task[];
   logs: PomodoroLog[];
   dayExecutions: TaskDayExecution[];
+  taskNotes: TaskNote[];
 }
 
 // 番茄钟计时器状态
@@ -176,6 +195,17 @@ export const IPC_CHANNELS = {
   CREATE_TASK: 'create-task',
   UPDATE_TASK: 'update-task',
   DELETE_TASK: 'delete-task',
+
+  // 任务备注
+  GET_TASK_NOTES: 'get-task-notes',
+  GET_TASK_NOTE_BY_TASK: 'get-task-note-by-task',
+  CREATE_TASK_NOTE: 'create-task-note',
+  UPDATE_TASK_NOTE: 'update-task-note',
+  DELETE_TASK_NOTE: 'delete-task-note',
+  // 任务链接
+  ADD_TASK_LINK: 'add-task-link',
+  UPDATE_TASK_LINK: 'update-task-link',
+  DELETE_TASK_LINK: 'delete-task-link',
   
   // 番茄钟日志
   GET_LOGS: 'get-logs',

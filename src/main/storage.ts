@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
-import { Settings, Project, Task, PomodoroLog, AppState, defaultSettings, TaskDayExecution } from '../shared/types';
+import { Settings, Project, Task, PomodoroLog, AppState, defaultSettings, TaskDayExecution, TaskNote, TaskLink } from '../shared/types';
 
 const DATA_FILE_NAME = 'data.json';
 
@@ -17,6 +17,7 @@ export class StorageManager {
       tasks: [],
       logs: [],
       dayExecutions: [],
+      taskNotes: [],
     };
   }
 
@@ -38,6 +39,7 @@ export class StorageManager {
       tasks: parsed.tasks || [],
       logs: parsed.logs || [],
       dayExecutions: parsed.dayExecutions || [],
+      taskNotes: parsed.taskNotes || [],
     };
   }
 
@@ -146,7 +148,115 @@ export class StorageManager {
     this.data.tasks.splice(index, 1);
     this.data.logs = this.data.logs.filter(l => l.taskId !== taskId);
     this.data.dayExecutions = this.data.dayExecutions.filter(de => de.taskId !== taskId);
+    // Also delete associated task notes
+    this.data.taskNotes = this.data.taskNotes.filter(n => n.taskId !== taskId);
     
+    this.save().catch(console.error);
+    return true;
+  }
+
+  // ===== TaskNote CRUD =====
+  getTaskNotes(): TaskNote[] {
+    return [...this.data.taskNotes];
+  }
+
+  getTaskNoteByTask(taskId: string): TaskNote | undefined {
+    return this.data.taskNotes.find(n => n.taskId === taskId);
+  }
+
+  createTaskNote(taskId: string): TaskNote {
+    // Check if note already exists for this task
+    const existing = this.getTaskNoteByTask(taskId);
+    if (existing) {
+      return existing;
+    }
+    
+    const now = new Date().toISOString();
+    const newNote: TaskNote = {
+      id: this.generateId(),
+      taskId,
+      content: '',
+      links: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.data.taskNotes.push(newNote);
+    this.save().catch(console.error);
+    return newNote;
+  }
+
+  updateTaskNote(note: TaskNote): TaskNote {
+    const index = this.data.taskNotes.findIndex(n => n.id === note.id);
+    if (index === -1) {
+      throw new Error(`TaskNote not found: ${note.id}`);
+    }
+    this.data.taskNotes[index] = {
+      ...note,
+      updatedAt: new Date().toISOString(),
+    };
+    this.save().catch(console.error);
+    return this.data.taskNotes[index];
+  }
+
+  deleteTaskNote(noteId: string): boolean {
+    const index = this.data.taskNotes.findIndex(n => n.id === noteId);
+    if (index === -1) {
+      return false;
+    }
+    this.data.taskNotes.splice(index, 1);
+    this.save().catch(console.error);
+    return true;
+  }
+
+  // ===== TaskLink CRUD =====
+  addTaskLink(noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>): TaskLink {
+    const noteIndex = this.data.taskNotes.findIndex(n => n.id === noteId);
+    if (noteIndex === -1) {
+      throw new Error(`TaskNote not found: ${noteId}`);
+    }
+    
+    const newLink: TaskLink = {
+      ...link,
+      id: this.generateId(),
+      createdAt: new Date().toISOString(),
+    };
+    
+    this.data.taskNotes[noteIndex].links.push(newLink);
+    this.data.taskNotes[noteIndex].updatedAt = new Date().toISOString();
+    this.save().catch(console.error);
+    return newLink;
+  }
+
+  updateTaskLink(noteId: string, link: TaskLink): TaskLink {
+    const noteIndex = this.data.taskNotes.findIndex(n => n.id === noteId);
+    if (noteIndex === -1) {
+      throw new Error(`TaskNote not found: ${noteId}`);
+    }
+    
+    const linkIndex = this.data.taskNotes[noteIndex].links.findIndex(l => l.id === link.id);
+    if (linkIndex === -1) {
+      throw new Error(`TaskLink not found: ${link.id}`);
+    }
+    
+    this.data.taskNotes[noteIndex].links[linkIndex] = link;
+    this.data.taskNotes[noteIndex].updatedAt = new Date().toISOString();
+    this.save().catch(console.error);
+    return this.data.taskNotes[noteIndex].links[linkIndex];
+  }
+
+  deleteTaskLink(noteId: string, linkId: string): boolean {
+    const noteIndex = this.data.taskNotes.findIndex(n => n.id === noteId);
+    if (noteIndex === -1) {
+      return false;
+    }
+    
+    const linkIndex = this.data.taskNotes[noteIndex].links.findIndex(l => l.id === linkId);
+    if (linkIndex === -1) {
+      return false;
+    }
+    
+    this.data.taskNotes[noteIndex].links.splice(linkIndex, 1);
+    this.data.taskNotes[noteIndex].updatedAt = new Date().toISOString();
     this.save().catch(console.error);
     return true;
   }
@@ -311,6 +421,7 @@ export class StorageManager {
       tasks: data.tasks || [],
       logs: data.logs || [],
       dayExecutions: data.dayExecutions || [],
+      taskNotes: data.taskNotes || [],
     };
     await this.save();
   }

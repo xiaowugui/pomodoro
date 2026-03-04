@@ -6,7 +6,7 @@ import { BreakWindowManager } from './windows/break-window';
 import { TrayManager } from './tray';
 import { ShortcutsManager } from './shortcuts';
 import { TimerManager } from './timer';
-import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, TaskDayExecution, defaultSettings } from '../shared/types';
+import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, TaskDayExecution, TaskNote, TaskLink, defaultSettings } from '../shared/types';
 
 /**
  * PomodoroApp - 主应用类
@@ -173,6 +173,39 @@ class PomodoroApp {
 
     ipcMain.handle(IPC_CHANNELS.DELETE_TASK, (_, taskId: string) => {
       return this.storage.deleteTask(taskId);
+    });
+
+    // 任务备注管理
+    ipcMain.handle(IPC_CHANNELS.GET_TASK_NOTES, () => {
+      return this.storage.getTaskNotes();
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_TASK_NOTE_BY_TASK, (_, taskId: string) => {
+      return this.storage.getTaskNoteByTask(taskId);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.CREATE_TASK_NOTE, (_, taskId: string) => {
+      return this.storage.createTaskNote(taskId);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.UPDATE_TASK_NOTE, (_, note: TaskNote) => {
+      return this.storage.updateTaskNote(note);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.DELETE_TASK_NOTE, (_, noteId: string) => {
+      return this.storage.deleteTaskNote(noteId);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.ADD_TASK_LINK, (_, noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>) => {
+      return this.storage.addTaskLink(noteId, link);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.UPDATE_TASK_LINK, (_, noteId: string, link: TaskLink) => {
+      return this.storage.updateTaskLink(noteId, link);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.DELETE_TASK_LINK, (_, noteId: string, linkId: string) => {
+      return this.storage.deleteTaskLink(noteId, linkId);
     });
 
     // 日志管理
