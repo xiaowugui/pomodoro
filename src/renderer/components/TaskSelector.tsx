@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Plus, Target } from 'lucide-react';
 import { useAppStore, useTimerStore } from '../stores';
-import { Task } from '@shared/types.ts';
+import type { Task } from '@shared/types';
 
 interface TaskSelectorProps {
   onCreateTask?: () => void;
@@ -9,11 +9,16 @@ interface TaskSelectorProps {
 }
 
 export default function TaskSelector({ onCreateTask, disabled = false }: TaskSelectorProps) {
-  const { tasks, projects } = useAppStore();
+  const { tasks, projects, getTodayPlannedTasks } = useAppStore();
   const { currentTaskId, setCurrentTask } = useTimerStore();
   const [isOpen, setIsOpen] = useState(false);
   
-  const activeTasks = tasks.filter((t) => t.status === 'active');
+  // Get today's planned tasks
+  const todayPlannedTasks = getTodayPlannedTasks();
+  
+  // If there are planned tasks for today, show only those; otherwise show all active tasks
+  const hasTodayPlannedTasks = todayPlannedTasks.length > 0;
+  const displayTasks = hasTodayPlannedTasks ? todayPlannedTasks : tasks.filter((t) => t.status === 'active');
   const selectedTask = tasks.find((t) => t.id === currentTaskId);
   
   const getProjectColor = (projectId: string) => {
@@ -34,6 +39,11 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
         className={`w-full flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-gray-300 dark:hover:border-gray-600'}`}
       >
         <div className="flex items-center gap-3 overflow-hidden">
+          {hasTodayPlannedTasks && (
+            <span title="今日计划任务">
+              <Target className="w-4 h-4 text-red-500 flex-shrink-0" />
+            </span>
+          )}
           {selectedTask ? (
             <>
               <div
@@ -48,7 +58,9 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
               </span>
             </>
           ) : (
-            <span className="text-gray-500 dark:text-gray-400">选择任务...</span>
+            <span className="text-gray-500 dark:text-gray-400">
+              {hasTodayPlannedTasks ? '选择今日计划任务...' : '选择任务...'}
+            </span>
           )}
         </div>
         <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -56,6 +68,13 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
       
       {isOpen && (
         <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-64 overflow-auto">
+          {/* Header showing filter status */}
+          {hasTodayPlannedTasks && (
+            <div className="px-4 py-2 text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 flex items-center gap-1">
+              <Target className="w-3 h-3" />
+              今日计划任务
+            </div>
+          )}
           <button
             onClick={() => handleSelect(null)}
             className="w-full px-4 py-2 text-left text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -63,12 +82,12 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
             无任务
           </button>
           
-          {activeTasks.length === 0 ? (
+          {displayTasks.length === 0 ? (
             <div className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500">
-              暂无活跃任务
+              {hasTodayPlannedTasks ? '今日暂无计划任务' : '暂无活跃任务'}
             </div>
           ) : (
-            activeTasks.map((task) => (
+            displayTasks.map((task: Task) => (
               <button
                 key={task.id}
                 onClick={() => handleSelect(task.id)}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../components';
 import { useAppStore } from '../stores';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle, Target, Plus, X } from 'lucide-react';
 
 function Calendar({ selectedDate, onSelectDate, datesWithTasks }: {
   selectedDate: string;
@@ -179,6 +179,111 @@ function DaySummary({ date }: { date: string }) {
   );
 }
 
+function TaskPlanner() {
+  const today = new Date().toISOString().split('T')[0];
+  const { tasks, projects, getTodayPlannedTasks, addTaskToToday, removeTaskFromToday } = useAppStore();
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  
+  const todayPlannedTasks = getTodayPlannedTasks();
+  const allActiveTasks = tasks.filter(t => t.status === 'active');
+  const unplannedTasks = allActiveTasks.filter(t => !t.plannedDates?.includes(today));
+  
+  const getProjectColor = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    return project?.color || '#9CA3AF';
+  };
+  
+  const handleAddTask = async (taskId: string) => {
+    await addTaskToToday(taskId);
+  };
+  
+  const handleRemoveTask = async (taskId: string) => {
+    await removeTaskFromToday(taskId);
+  };
+  
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
+  };
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
+      <div className="flex items-center gap-3 mb-4">
+        <Target className="w-6 h-6 text-red-500" />
+        <h2 className="text-xl font-bold">今日计划</h2>
+        <span className="text-sm text-gray-500">({todayPlannedTasks.length})</span>
+      </div>
+      
+      {/* Planned tasks */}
+      {todayPlannedTasks.length > 0 && (
+        <div className="mb-6">
+          <h3 className="font-semibold mb-3 text-gray-500">已计划</h3>
+          <div className="space-y-2">
+            {todayPlannedTasks.map(task => (
+              <div key={task.id} className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: getProjectColor(task.projectId) }}
+                />
+                <span className="flex-1 truncate text-gray-900 dark:text-white">{task.title}</span>
+                <span className="text-sm text-gray-500">
+                  {task.completedPomodoros || 0}/{task.estimatedPomodoros}
+                </span>
+                <button
+                  onClick={() => handleRemoveTask(task.id)}
+                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 rounded"
+                  title="从今日计划中移除"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Available tasks to add */}
+      <div>
+        <button
+          onClick={() => setShowAllTasks(!showAllTasks)}
+          className="flex items-center gap-2 font-semibold mb-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        >
+          <Plus className={`w-4 h-4 transition-transform ${showAllTasks ? 'rotate-45' : ''}`} />
+          <span>添加任务到计划 ({unplannedTasks.length})</span>
+        </button>
+        
+        {showAllTasks && (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {unplannedTasks.length === 0 ? (
+              <p className="text-sm text-gray-400 py-2">所有任务已添加到今日计划</p>
+            ) : (
+              unplannedTasks.map(task => (
+                <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: getProjectColor(task.projectId) }}
+                  />
+                  <span className="flex-1 truncate text-gray-900 dark:text-white">{task.title}</span>
+                  <span className="text-sm text-gray-500">
+                    {task.completedPomodoros || 0}/{task.estimatedPomodoros}
+                  </span>
+                  <button
+                    onClick={() => handleAddTask(task.id)}
+                    className="p-1 hover:bg-green-100 dark:hover:bg-green-900/40 rounded"
+                    title="添加到今日计划"
+                  >
+                    <Plus className="w-4 h-4 text-green-500" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DailyViewPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(true);
@@ -205,6 +310,10 @@ export default function DailyViewPage() {
       });
     }
   });
+
+  // Check if selected date is today
+  const today = new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === today;
   
   return (
     <Layout>
@@ -223,7 +332,11 @@ export default function DailyViewPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
             </div>
           ) : (
-            <DaySummary date={selectedDate} />
+            <>
+              {/* Show task planner only for today */}
+              {isToday && <TaskPlanner />}
+              <DaySummary date={selectedDate} />
+            </>
           )}
         </main>
       </div>

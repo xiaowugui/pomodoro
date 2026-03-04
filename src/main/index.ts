@@ -64,6 +64,43 @@ class PomodoroApp {
     if (process.platform === 'darwin') {
       app.dock.setMenu(this.tray.getDockMenu());
     }
+    
+    // 设置开机自动启动
+    this.setupAutoStart();
+  }
+
+  /**
+   * 设置开机自动启动
+   */
+  private setupAutoStart(): void {
+    const settings = this.storage.getSettings();
+    
+    if (process.platform === 'win32') {
+      app.setLoginItemSettings({
+        openAtLogin: settings.autoStartEnabled,
+        path: process.execPath,
+        args: ['--hidden'],
+      });
+    } else if (process.platform === 'darwin') {
+      app.setLoginItemSettings({
+        openAtLogin: settings.autoStartEnabled,
+        path: process.execPath,
+        args: ['--hidden'],
+      });
+    }
+  }
+
+  /**
+   * 更新开机启动设置
+   */
+  private updateAutoStart(enabled: boolean): void {
+    if (process.platform === 'win32' || process.platform === 'darwin') {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        path: process.execPath,
+        args: ['--hidden'],
+      });
+    }
   }
 
   private setupIPC(): void {
@@ -77,6 +114,8 @@ class PomodoroApp {
       this.mainWindow.webContents?.send(IPC_CHANNELS.SETTINGS_CHANGED, settings);
       // 重新注册快捷键
       this.shortcuts.updateShortcuts(this);
+      // 更新开机启动设置
+      this.updateAutoStart(settings.autoStartEnabled);
       return settings;
     });
 
@@ -186,6 +225,24 @@ class PomodoroApp {
 
     ipcMain.handle(IPC_CHANNELS.QUIT_APP, () => {
       app.quit();
+    });
+
+    // 开机启动控制
+    ipcMain.handle(IPC_CHANNELS.GET_AUTO_START, () => {
+      if (process.platform === 'win32' || process.platform === 'darwin') {
+        const loginSettings = app.getLoginItemSettings();
+        return loginSettings.openAtLogin;
+      }
+      return false;
+    });
+
+    ipcMain.handle(IPC_CHANNELS.SET_AUTO_START, (_, enabled: boolean) => {
+      this.updateAutoStart(enabled);
+      // 更新设置存储
+      const settings = this.storage.getSettings();
+      settings.autoStartEnabled = enabled;
+      this.storage.setSettings(settings);
+      return enabled;
     });
 
     // 通知
@@ -377,15 +434,8 @@ class PomodoroApp {
       console.error('[PomodoroApp] Error registering shortcuts:', error);
     }
     
-    // 发送通知
-    try {
-      this.showNotification(
-        breakType === 'short_break' ? '短休息开始' : '长休息开始',
-        '请放下工作，好好休息一下吧！'
-      );
-    } catch (error) {
-      console.error('[PomodoroApp] Error sending notification:', error);
-    }
+    // 注意：不再发送通知，因为 handleWorkComplete 已经发送了"番茄钟完成"通知
+    // 避免重复通知打扰用户
   }
 
   /**

@@ -17,6 +17,7 @@ export interface Task {
   createdAt: string;
   completedAt?: string;
   workDates: string[];  // 任务执行过的日期列表 YYYY-MM-DD
+  plannedDates: string[];  // 任务计划执行的日期列表 YYYY-MM-DD
 }
 
 // 任务每日执行记录
@@ -52,6 +53,7 @@ export interface Settings {
   // 行为设置
   autoStartBreaks: boolean;
   autoStartPomodoros: boolean;
+  autoStartEnabled: boolean;  // 开机自动启动
   strictMode: boolean;
   
   // 休息设置 - 增强版
@@ -96,6 +98,7 @@ export const defaultSettings: Settings = {
   longBreakInterval: 4,
   autoStartBreaks: false,
   autoStartPomodoros: false,
+  autoStartEnabled: false,
   strictMode: false,
   
   // 休息窗口设置
@@ -216,6 +219,10 @@ export const IPC_CHANNELS = {
   SHOW_MAIN_WINDOW: 'show-main-window',
   HIDE_MAIN_WINDOW: 'hide-main-window',
   QUIT_APP: 'quit-app',
+  
+  // 开机启动
+  GET_AUTO_START: 'get-auto-start',
+  SET_AUTO_START: 'set-auto-start',
   
   // 通知
   SHOW_NOTIFICATION: 'show-notification',

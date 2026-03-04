@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Volume2, Bell, Monitor, Moon, Sun, Laptop, Keyboard, RotateCcw } from 'lucide-react';
+import { Volume2, Bell, Monitor, Moon, Sun, Laptop, Keyboard, RotateCcw, Power } from 'lucide-react';
 import { useSettingsStore } from '../stores';
-import { Settings } from '@shared/types.ts';
+import { Settings } from '@shared/types';
 
 interface SettingsFormProps {
   onSave?: () => void;
@@ -118,6 +118,27 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
           </label>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
             休息弹窗会自动显示倒计时
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <Power className="w-5 h-5" />
+          系统设置
+        </h3>
+        <div className="space-y-3">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={currentSettings.autoStartEnabled}
+              onChange={(e) => handleChange('autoStartEnabled', e.target.checked)}
+              className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
+            />
+            <span className="text-gray-700 dark:text-gray-300">开机自动启动</span>
+          </label>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            登录Windows时自动启动番茄钟应用
           </p>
         </div>
       </section>

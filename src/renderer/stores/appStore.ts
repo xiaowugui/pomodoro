@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Project, Task, PomodoroLog, TaskDayExecution } from '@shared/types.ts';
+import { Project, Task, PomodoroLog, TaskDayExecution } from '@shared/types';
 
 declare global {
   interface Window {
@@ -13,6 +13,8 @@ declare global {
       updateTask: (task: any) => Promise<Task>;
       deleteTask: (id: string) => Promise<boolean>;
       getLogs: () => Promise<PomodoroLog[]>;
+      createLog: (log: any) => Promise<PomodoroLog>;
+      updateLog: (log: any) => Promise<PomodoroLog>;
       getDayExecutions: () => Promise<TaskDayExecution[]>;
       getDayExecutionsByDate: (date: string) => Promise<TaskDayExecution[]>;
       getDayExecutionsByTask: (taskId: string) => Promise<TaskDayExecution[]>;
@@ -56,6 +58,12 @@ interface AppStoreState {
   loadDayExecutions: () => Promise<void>;
   getTasksByDate: (date: string) => Task[];
   getDailySummary: (date: string) => { totalPomodoros: number; totalMinutes: number; taskCount: number };
+  
+  // Actions - Planned Tasks
+  getTodayPlannedTasks: () => Task[];
+  addTaskToToday: (taskId: string) => Promise<Task>;
+  removeTaskFromToday: (taskId: string) => Promise<Task>;
+  isTaskPlannedForToday: (taskId: string) => boolean;
   
   // Actions - Data management
   loadAllData: () => Promise<void>;
@@ -372,5 +380,52 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       completedTasks: tasks.filter((t) => t.status === 'completed').length,
       streakDays,
     };
+  },
+
+  // Planned Tasks
+  getTodayPlannedTasks: () => {
+    const today = new Date().toISOString().split('T')[0];
+    return get().tasks.filter((t) => 
+      t.status === 'active' && t.plannedDates?.includes(today)
+    );
+  },
+
+  addTaskToToday: async (taskId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const task = get().tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Task not found: ${taskId}`);
+
+    const plannedDates = task.plannedDates || [];
+    if (plannedDates.includes(today)) {
+      return task; // Already planned for today
+    }
+
+    const updatedTask: Task = {
+      ...task,
+      plannedDates: [...plannedDates, today],
+    };
+
+    return get().updateTask(updatedTask);
+  },
+
+  removeTaskFromToday: async (taskId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const task = get().tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Task not found: ${taskId}`);
+
+    const plannedDates = (task.plannedDates || []).filter((d) => d !== today);
+
+    const updatedTask: Task = {
+      ...task,
+      plannedDates,
+    };
+
+    return get().updateTask(updatedTask);
+  },
+
+  isTaskPlannedForToday: (taskId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const task = get().tasks.find((t) => t.id === taskId);
+    return task?.plannedDates?.includes(today) || false;
   },
 }));

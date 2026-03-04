@@ -87,11 +87,27 @@ export class ShortcutsManager {
     // 推迟休息快捷键
     if (settings.postponeEnabled && shortcuts.postponeBreak) {
       this.registerBreakShortcut(shortcuts.postponeBreak, () => {
+        const timer = app.getTimer();
         const breakWindows = app.getBreakWindows();
-        // 推迟休息
-        breakWindows.postponeBreak();
-        // 注销快捷键
-        this.unregisterBreakShortcuts();
+        const storage = app.getStorage();
+        
+        // 调用 timer.postpone() 来设置恢复计时器
+        const success = timer.postpone();
+        
+        if (success) {
+          // 隐藏休息窗口
+          breakWindows.hide();
+          // 注销快捷键
+          this.unregisterBreakShortcuts();
+          
+          // 显示通知
+          const currentSettings = storage.getSettings();
+          const { Notification } = require('electron');
+          new Notification({
+            title: '休息已推迟',
+            body: `${currentSettings.postponeMinutes}分钟后将重新开始休息。`,
+          }).show();
+        }
       });
     }
   }
