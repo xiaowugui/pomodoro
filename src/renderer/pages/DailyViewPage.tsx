@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Layout } from '../components';
+import { Layout, TaskForm } from '../components';
 import { useAppStore } from '../stores';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle, Target, Plus, X } from 'lucide-react';
+import { Task } from '@shared/types';
 
 function Calendar({ selectedDate, onSelectDate, datesWithTasks }: {
   selectedDate: string;
@@ -219,15 +220,7 @@ function TaskPlanner() {
   ).length;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Target className="w-6 h-6 text-red-500" />
-        <h2 className="text-xl font-bold">今日任务</h2>
-        <span className="text-sm text-gray-500">
-          {completedCount}/{totalTasks} 完成
-        </span>
-      </div>
-      
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
       {/* Planned tasks */}
       {todayPlannedTasks.length > 0 && (
         <div className="mb-6">
@@ -309,16 +302,18 @@ function TaskPlanner() {
 export default function DailyViewPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(true);
-  const { tasks, dayExecutions, loadDayExecutions } = useAppStore();
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const { tasks, dayExecutions, loadDayExecutions, loadTasks } = useAppStore();
   
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await loadDayExecutions();
+      await Promise.all([loadDayExecutions(), loadTasks()]);
       setIsLoading(false);
     };
     loadData();
-  }, [loadDayExecutions]);
+  }, [loadDayExecutions, loadTasks]);
   
   const datesWithTasks = [...new Set(dayExecutions.map(de => de.date))];
   
@@ -336,6 +331,31 @@ export default function DailyViewPage() {
   // Check if selected date is today
   const today = new Date().toISOString().split('T')[0];
   const isToday = selectedDate === today;
+  
+  // Calculate task completion stats for display
+  const todayPlannedTasks = useAppStore.getState().getTodayPlannedTasks();
+  const allActiveTasksCount = tasks.filter(t => t.status === 'active').length;
+  const completedTodayCount = todayPlannedTasks.filter(
+    t => (t.completedPomodoros || 0) >= t.estimatedPomodoros
+  ).length;
+  
+  // Task form handlers
+  const handleCreateTask = () => {
+    setEditingTask(null);
+    setIsTaskFormOpen(true);
+  };
+
+  const handleTaskFormClose = () => {
+    setIsTaskFormOpen(false);
+    setEditingTask(null);
+  };
+
+  const handleTaskFormSubmit = async () => {
+    // Reload tasks to get the newly created task
+    await useAppStore.getState().loadTasks();
+    setIsTaskFormOpen(false);
+    setEditingTask(null);
+  };
   
   return (
     <Layout>
@@ -356,12 +376,41 @@ export default function DailyViewPage() {
           ) : (
             <>
               {/* Show task planner only for today */}
-              {isToday && <TaskPlanner />}
+              {isToday && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Target className="w-6 h-6 text-red-500" />
+                      <h2 className="text-xl font-bold">今日任务</h2>
+                      <span className="text-sm text-gray-500">
+                        {completedTodayCount}/{allActiveTasksCount} 完成
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleCreateTask}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      新建任务
+                    </button>
+                  </div>
+                  <TaskPlanner />
+                </div>
+              )}
               <DaySummary date={selectedDate} />
             </>
           )}
         </main>
       </div>
+
+      {/* Task Form Modal */}
+      {isTaskFormOpen && (
+        <TaskForm
+          task={editingTask}
+          onSubmit={handleTaskFormSubmit}
+          onCancel={handleTaskFormClose}
+        />
+      )}
     </Layout>
   );
 }
