@@ -49,6 +49,13 @@ export default function TasksPage() {
     setEditingTask(null);
   };
 
+  // Handle opening task notes in a new window
+  const handleOpenTaskNotes = async (taskId: string) => {
+    if (window.electronAPI?.openTaskNoteWindow) {
+      await window.electronAPI.openTaskNoteWindow(taskId);
+    }
+  };
+
   const handleProjectFormClose = () => {
     setIsProjectFormOpen(false);
     setEditingProject(null);
@@ -108,6 +115,7 @@ export default function TasksPage() {
             tasks={filteredTasks}
             projectId={selectedProjectId}
             onEdit={handleEditTask}
+            onOpenNotes={handleOpenTaskNotes}
             showFilters={true}
           />
         </main>
