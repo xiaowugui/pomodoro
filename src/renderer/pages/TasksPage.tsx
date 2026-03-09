@@ -12,6 +12,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
 
   useEffect(() => {
     // 只在组件挂载时加载数据
@@ -65,6 +66,20 @@ export default function TasksPage() {
     ? tasks.filter((t) => t.projectId === selectedProjectId)
     : tasks;
 
+  // Apply status filter
+  const statusFilteredTasks = filteredTasks.filter((t) => {
+    if (filter === 'active') return t.status === 'active';
+    if (filter === 'completed') return t.status === 'completed';
+    return true;
+  });
+
+  // Get status filtered projects
+  const statusFilteredProjects = projects.filter((p) => {
+    if (filter === 'active') return p.status === 'active';
+    if (filter === 'completed') return p.status === 'completed';
+    return true;
+  });
+
   return (
     <Layout>
       <div className="flex h-[calc(100vh-3rem)]">
@@ -76,6 +91,7 @@ export default function TasksPage() {
               onCreate={handleCreateProject}
               selectedId={selectedProjectId}
               onSelect={setSelectedProjectId}
+              filter={filter}
             />
           </div>
         </aside>
@@ -90,10 +106,26 @@ export default function TasksPage() {
                   : '全部任务'}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {filteredTasks.filter((t) => t.status === 'active').length} 个进行中任务
+                {statusFilteredTasks.filter((t) => t.status === 'active').length} 个进行中任务
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* Filter buttons */}
+              <div className="flex items-center gap-1 mr-2">
+                {(['active', 'completed', 'all'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                      filter === f
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    {f === 'active' ? '未完成' : f === 'completed' ? '已完成' : '全部'}
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={handleCreateProject}
                 className="flex items-center gap-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -112,11 +144,12 @@ export default function TasksPage() {
           </div>
 
           <TaskList
-            tasks={filteredTasks}
+            tasks={statusFilteredTasks}
             projectId={selectedProjectId}
             onEdit={handleEditTask}
             onOpenNotes={handleOpenTaskNotes}
-            showFilters={true}
+            showFilters={false}
+            externalFilter={filter}
           />
         </main>
       </div>

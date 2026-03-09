@@ -324,6 +324,7 @@ export class TimerManager extends EventEmitter {
       this.sessionStartTime = new Date().toISOString();
       
       const breakType = this.state.phase === 'long_break' ? 'long_break' : 'short_break';
+      console.log('[TimerManager] Emitting break-start, phase:', this.state.phase, 'breakType:', breakType);
       this.emit('break-start', breakType);
       
       // 休息阶段自动开始倒计时（默认行为）

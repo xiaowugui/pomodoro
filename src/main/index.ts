@@ -340,6 +340,13 @@ class PomodoroApp {
       return true;
     });
 
+    // Get timer state
+    ipcMain.handle('get-timer-state', () => {
+      const state = this.timer.getState();
+      console.log('[PomodoroApp] get-timer-state called, returning:', JSON.stringify(state));
+      return state;
+    });
+
     // 计时器控制
     ipcMain.handle(IPC_CHANNELS.TIMER_START, (_, taskId?: string) => {
       this.timer.start(taskId);
@@ -390,6 +397,7 @@ class PomodoroApp {
       
       // 如果在休息阶段，更新休息窗口
       if (state.phase === 'short_break' || state.phase === 'long_break') {
+        console.log('[PomodoroApp] Timer tick - break phase detected, calling updateTime:', state.timeRemaining, state.totalTime);
         this.breakWindows.updateTime(state.timeRemaining, state.totalTime);
       }
     });
@@ -425,6 +433,7 @@ class PomodoroApp {
 
     // 休息开始
     this.timer.on('break-start', (breakType) => {
+      console.log('[PomodoroApp] break-start event received, breakType:', breakType);
       this.handleBreakStart(breakType);
     });
 
@@ -500,6 +509,8 @@ class PomodoroApp {
   private handleBreakStart(breakType: 'short_break' | 'long_break'): void {
     const settings = this.storage.getSettings();
     
+    console.log('[PomodoroApp] handleBreakStart called, breakType:', breakType);
+    
     try {
       // 显示休息窗口（传递设置）
       this.breakWindows.show(breakType, settings);
@@ -536,14 +547,17 @@ class PomodoroApp {
    * 处理休息完成
    */
   private handleBreakComplete(): void {
+    console.log('[PomodoroApp] handleBreakComplete called');
+    
     // 隐藏休息窗口
     this.breakWindows.hide();
     
     // 注销休息快捷键
     this.shortcuts.unregisterBreakShortcuts();
     
-    // 完成休息计时
-    this.timer.completeBreak();
+    // 注意：不再调用 timer.completeBreak()
+    // 因为在 timer.ts 的 handleTimerComplete() 中已经调用了 transitionToNextPhase()
+    // 如果再次调用会导致 phase 从 'work' 再次变为 'break'，导致重复显示休息窗口
     
     // 发送通知
     this.showNotification(

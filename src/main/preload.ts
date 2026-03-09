@@ -130,6 +130,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('data-updated', () => callback())
   },
 
+  // Break window listeners - for break window only
+  onBreakTick: (callback: (data: any) => void) => {
+    ipcRenderer.on('break-tick', (_, data) => callback(data))
+  },
+  onBreakPostponeCount: (callback: (data: any) => void) => {
+    ipcRenderer.on('break-postpone-count', (_, data) => callback(data))
+  },
+  onBreakStrictMode: (callback: (data: any) => void) => {
+    ipcRenderer.on('break-strict-mode', (_, data) => callback(data))
+  },
+  getBreakSettings: () => ipcRenderer.invoke('get-break-settings'),
+
+  // Break actions
+  breakComplete: () => ipcRenderer.invoke('break-complete'),
+  breakPostpone: () => ipcRenderer.invoke('break-postpone'),
+  breakSkip: () => ipcRenderer.invoke('break-skip'),
+
+  // Get current timer state (for break window initial state)
+  getTimerState: () => ipcRenderer.invoke('get-timer-state'),
+
   // 任务备注窗口
   openTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('open-task-note-window', taskId),
   closeTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('close-task-note-window', taskId),

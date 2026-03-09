@@ -27,8 +27,11 @@ export class BreakWindowManager {
     this.settings = settings;
     this.currentBreakType = 'short_break';
     
+    console.log('[BreakWindowManager] showShortBreak called, existing windows:', this.breakWins?.length);
+    
     // 如果已经在休息，不重复创建（检查是否有实际窗口）
     if (this.breakWins && this.breakWins.length > 0) {
+      console.log('[BreakWindowManager] Already showing break, returning');
       return;
     }
     
@@ -224,8 +227,11 @@ export class BreakWindowManager {
     this.settings = settings;
     this.currentBreakType = 'long_break';
     
+    console.log('[BreakWindowManager] showLongBreak called, existing windows:', this.breakWins?.length);
+    
     // 如果已经在休息，不重复创建（检查是否有实际窗口）
     if (this.breakWins && this.breakWins.length > 0) {
+      console.log('[BreakWindowManager] Already showing break, returning');
       return;
     }
     
@@ -401,6 +407,7 @@ export class BreakWindowManager {
    * 显示休息窗口（通用方法）
    */
   show(breakType: 'short_break' | 'long_break', settings: Settings): void {
+    console.log('[BreakWindowManager] show called, breakType:', breakType, 'current breakWins:', this.breakWins?.length);
     if (breakType === 'short_break') {
       this.showShortBreak(settings);
     } else {
@@ -592,7 +599,10 @@ export class BreakWindowManager {
    * 修复：实现真实的计时更新，让渲染进程能收到倒计时
    */
   updateTime(timeRemaining: number, totalTime: number): void {
+    console.log('[BreakWindowManager] updateTime called:', timeRemaining, totalTime);
+    
     if (!this.breakWins || this.breakWins.length === 0) {
+      console.log('[BreakWindowManager] No break windows available');
       return;
     }
 
@@ -616,6 +626,8 @@ export class BreakWindowManager {
       postponeLimit: this.settings?.postponeLimit || 1
     };
 
+    console.log('[BreakWindowManager] Broadcasting break-tick with data:', JSON.stringify(tickData));
+
     for (const win of this.breakWins) {
       if (!win.isDestroyed()) {
         win.webContents.send('break-tick', tickData);
@@ -623,13 +635,14 @@ export class BreakWindowManager {
     }
 
     // 如果倒计时结束，自动完成休息
+    // 注意：这里不再调用 onBreakCompleteCallback，因为主进程已经在 handleTimerComplete 中处理了阶段转换
+    // 如果再次调用会导致 phase 从 'work' 再次变为 'break'，导致重复显示休息窗口
     if (timeRemaining === 0) {
+      console.log('[BreakWindowManager] Break time completed, calling finishBreak');
       setTimeout(() => {
         this.finishBreak(true);
-        // 通知计时器休息已完成
-        if (this.onBreakCompleteCallback) {
-          this.onBreakCompleteCallback();
-        }
+        // 不再调用 onBreakCompleteCallback，避免重复触发 transitionToNextPhase
+        // 阶段转换已经在 timer.ts 的 handleTimerComplete 中完成
       }, 1000); // 延迟1秒让用户看到0:00
     }
   }

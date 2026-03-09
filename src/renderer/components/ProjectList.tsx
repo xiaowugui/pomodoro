@@ -8,19 +8,35 @@ interface ProjectListProps {
   onCreate?: () => void;
   selectedId?: string | null;
   onSelect?: (projectId: string | null) => void;
+  filter?: 'all' | 'active' | 'completed';
 }
 
 export default function ProjectList({ 
   onEdit, 
   onCreate, 
   selectedId, 
-  onSelect 
+  onSelect,
+  filter = 'all'
 }: ProjectListProps) {
   const { projects, tasks, deleteProject, completeProject } = useAppStore();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   
+  // Filter projects based on filter prop
+  const filteredProjects = projects.filter((p) => {
+    if (filter === 'active') return p.status === 'active';
+    if (filter === 'completed') return p.status === 'completed';
+    return true;
+  });
+  
   const getTaskCount = (projectId: string) => {
-    return tasks.filter((t) => t.projectId === projectId && t.status === 'active').length;
+    const projectTasks = tasks.filter((t) => t.projectId === projectId);
+    if (filter === 'active') {
+      return projectTasks.filter((t) => t.status === 'active').length;
+    }
+    if (filter === 'completed') {
+      return projectTasks.filter((t) => t.status === 'completed').length;
+    }
+    return projectTasks.length;
   };
   
   const handleDelete = async (projectId: string) => {
@@ -70,11 +86,17 @@ export default function ProjectList({
         >
           <Folder className="w-5 h-5" />
           <span className="flex-1 text-left">全部任务</span>
-          <span className="text-xs text-gray-400">{tasks.filter((t) => t.status === 'active').length}</span>
+          <span className="text-xs text-gray-400">
+            {filter === 'active' 
+              ? tasks.filter((t) => t.status === 'active').length 
+              : filter === 'completed'
+              ? tasks.filter((t) => t.status === 'completed').length
+              : tasks.length}
+          </span>
         </button>
       )}
       
-      {projects.map((project) => (
+      {filteredProjects.map((project) => (
         <div
           key={project.id}
           className={`group flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
@@ -148,7 +170,7 @@ export default function ProjectList({
         </div>
       ))}
       
-      {projects.length === 0 && (
+      {filteredProjects.length === 0 && (
         <div className="text-center py-4 text-gray-400 dark:text-gray-500 text-sm">
           暂无项目
         </div>

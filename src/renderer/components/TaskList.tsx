@@ -10,6 +10,7 @@ interface TaskListProps {
   onSelect?: (task: Task) => void;
   showFilters?: boolean;
   onOpenNotes?: (taskId: string) => void;
+  externalFilter?: 'all' | 'active' | 'completed';
 }
 
 export default function TaskList({ 
@@ -18,18 +19,21 @@ export default function TaskList({
   onEdit, 
   onSelect,
   showFilters = true,
-  onOpenNotes 
+  onOpenNotes,
+  externalFilter
 }: TaskListProps) {
   const { tasks: allTasks, projects, completeTask, deleteTask } = useAppStore();
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   
   const tasks = propTasks || allTasks;
   
+  // Use external filter if provided, otherwise default to 'active'
+  const effectiveFilter = externalFilter || 'active';
+  
   const filteredTasks = tasks.filter((task) => {
     if (projectId && task.projectId !== projectId) return false;
-    if (filter === 'active') return task.status === 'active';
-    if (filter === 'completed') return task.status === 'completed';
+    if (effectiveFilter === 'active') return task.status === 'active';
+    if (effectiveFilter === 'completed') return task.status === 'completed';
     return true;
   });
   
@@ -71,14 +75,17 @@ export default function TaskList({
   
   return (
     <div className="space-y-4">
-      {showFilters && (
+      {showFilters && !externalFilter && (
         <div className="flex items-center gap-2">
           {(['all', 'active', 'completed'] as const).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                // This branch won't be reached when externalFilter is provided
+                // But we need a valid handler
+              }}
               className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                filter === f
+                effectiveFilter === f
                   ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
