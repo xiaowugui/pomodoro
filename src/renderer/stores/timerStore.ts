@@ -12,6 +12,7 @@ declare global {
       timerComplete: () => Promise<void>;
       onTimerTick: (callback: (state: TimerState) => void) => void;
       onTimerComplete: (callback: (phase: string) => void) => void;
+      onTimerPhaseChange: (callback: (phase: string) => void) => void;
       onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number }) => void) => void;
       onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => void;
       onDataUpdated: (callback: () => void) => void;
@@ -193,6 +194,13 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       console.log('Timer complete:', phase);
     };
 
+    // Handle phase change
+    const handlePhaseChange = (phase: string) => {
+      console.log('Phase changed to:', phase);
+      // Update phase in store - need to cast to valid phase type
+      set({ phase: phase as 'idle' | 'work' | 'short_break' | 'long_break' });
+    };
+
     // Handle postpone start
     const handlePostponeStart = (data: { postponeEndTime: number }) => {
       get().setPostponeState(true, data.postponeEndTime);
@@ -205,6 +213,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
 
     window.electronAPI.onTimerTick(handleTimerTick);
     window.electronAPI.onTimerComplete(handleTimerComplete);
+    window.electronAPI.onTimerPhaseChange(handlePhaseChange);
     window.electronAPI.onPostponeStart(handlePostponeStart);
     window.electronAPI.onPostponeEnd(handlePostponeEnd);
 
@@ -212,6 +221,7 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     return () => {
       window.electronAPI.removeAllListeners('timer-tick');
       window.electronAPI.removeAllListeners('timer-complete');
+      window.electronAPI.removeAllListeners('timer-phase-change');
       window.electronAPI.removeAllListeners('timer-postpone-start');
       window.electronAPI.removeAllListeners('timer-postpone-end');
     };

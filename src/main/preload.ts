@@ -115,6 +115,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onTimerComplete: (callback: (phase: string) => void) => {
     ipcRenderer.on(IPC_CHANNELS.TIMER_COMPLETE, (_, phase) => callback(phase))
   },
+  onTimerPhaseChange: (callback: (phase: string) => void) => {
+    ipcRenderer.on('timer-phase-change', (_, phase) => callback(phase))
+  },
 
   // 推迟事件
   onPostponeStart: (callback: (data: { postponeEndTime: number }) => void) => {
