@@ -53,6 +53,7 @@ interface AppStoreState {
   createProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<Project>;
   updateProject: (project: Project) => Promise<Project>;
   deleteProject: (projectId: string) => Promise<boolean>;
+  completeProject: (projectId: string) => Promise<Project>;
   
   // Actions - Tasks
   loadTasks: () => Promise<void>;
@@ -169,6 +170,19 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       set({ error: String(error), isLoading: false });
       throw error;
     }
+  },
+
+  completeProject: async (projectId: string) => {
+    const project = get().projects.find((p) => p.id === projectId);
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+
+    const updatedProject = {
+      ...project,
+      status: 'completed' as const,
+      completedAt: new Date().toISOString(),
+    };
+
+    return get().updateProject(updatedProject);
   },
 
   // Tasks
