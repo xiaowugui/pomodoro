@@ -1,26 +1,49 @@
 import { create } from 'zustand';
-import { Project, Task, PomodoroLog, TaskDayExecution } from '@shared/types';
+import { Project, Task, PomodoroLog, TaskDayExecution, TimerState } from '@shared/types';
 
 declare global {
   interface Window {
     electronAPI: {
+      // Projects
       getProjects: () => Promise<Project[]>;
       createProject: (project: any) => Promise<Project>;
       updateProject: (project: any) => Promise<Project>;
       deleteProject: (id: string) => Promise<boolean>;
+      
+      // Tasks
       getTasks: () => Promise<Task[]>;
       createTask: (task: any) => Promise<Task>;
       updateTask: (task: any) => Promise<Task>;
       deleteTask: (id: string) => Promise<boolean>;
+      
+      // Logs
       getLogs: () => Promise<PomodoroLog[]>;
       createLog: (log: any) => Promise<PomodoroLog>;
       updateLog: (log: any) => Promise<PomodoroLog>;
+      
+      // Day Executions
       getDayExecutions: () => Promise<TaskDayExecution[]>;
       getDayExecutionsByDate: (date: string) => Promise<TaskDayExecution[]>;
       getDayExecutionsByTask: (taskId: string) => Promise<TaskDayExecution[]>;
       createDayExecution: (execution: any) => Promise<TaskDayExecution>;
       updateDayExecution: (execution: any) => Promise<TaskDayExecution>;
       deleteDayExecution: (id: string) => Promise<boolean>;
+      
+      // Timer control
+      timerStart: (data?: any) => Promise<void>;
+      timerPause: () => Promise<void>;
+      timerResume: () => Promise<void>;
+      timerStop: () => Promise<void>;
+      timerSkip: () => Promise<void>;
+      timerComplete: () => Promise<void>;
+      
+      // Timer events
+      onTimerTick: (callback: (state: TimerState) => void) => void;
+      onTimerComplete: (callback: (phase: string) => void) => void;
+      onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number }) => void) => void;
+      onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => void;
+      onDataUpdated: (callback: () => void) => void;
+      removeAllListeners: (channel: string) => void;
     };
   }
 }
@@ -41,6 +64,7 @@ interface AppStoreState {
   createProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<Project>;
   updateProject: (project: Project) => Promise<Project>;
   deleteProject: (projectId: string) => Promise<boolean>;
+  completeProject: (projectId: string) => Promise<Project>;
   
   // Actions - Tasks
   loadTasks: () => Promise<void>;
@@ -148,6 +172,19 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       set({ error: String(error), isLoading: false });
       throw error;
     }
+  },
+
+  completeProject: async (projectId: string) => {
+    const project = get().projects.find((p) => p.id === projectId);
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+
+    const updatedProject: Project = {
+      ...project,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+    };
+
+    return get().updateProject(updatedProject);
   },
 
   // Tasks

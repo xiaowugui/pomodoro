@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, Clock, Trash2, Edit2, Play, MoreVertical, AlertCircle, Clock9 } from 'lucide-react';
 import { useAppStore } from '../stores';
-import { Task } from '@shared/types.ts';
+import { Task } from '@shared/types';
 
 interface TaskListProps {
   tasks?: Task[];

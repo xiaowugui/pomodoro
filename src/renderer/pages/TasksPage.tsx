@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Layout, ProjectList, TaskList, TaskForm, ProjectForm } from '../components';
 import { useAppStore } from '../stores';
-import { Task, Project } from '@shared/types.ts';
+import { Task, Project } from '@shared/types';
 import { Plus, FolderPlus } from 'lucide-react';
 
 export default function TasksPage() {
@@ -120,6 +120,7 @@ export default function TasksPage() {
           defaultProjectId={selectedProjectId || undefined}
           onSubmit={handleTaskFormClose}
           onCancel={handleTaskFormClose}
+          onCreateProject={handleCreateProject}
         />
       )}
 

@@ -35,7 +35,11 @@ export default function ProjectForm({
   }, [project]);
   
   useEffect(() => {
-    nameInputRef.current?.focus();
+    // Delay focus slightly to ensure DOM is ready
+    const timer = setTimeout(() => {
+      nameInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,6 +58,7 @@ export default function ProjectForm({
         await createProject({
           name: name.trim(),
           color,
+          status: 'active',
         });
       }
       onSubmit();
@@ -63,7 +68,7 @@ export default function ProjectForm({
   };
   
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -84,6 +89,7 @@ export default function ProjectForm({
             </label>
             <input
               ref={nameInputRef}
+              autoFocus
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}

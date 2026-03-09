@@ -1,7 +1,7 @@
-import { Folder, MoreVertical, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Folder, MoreVertical, Plus, Trash2, Edit2, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useAppStore } from '../stores';
-import { Project } from '@shared/types.ts';
+import { Project } from '@shared/types';
 
 interface ProjectListProps {
   onEdit?: (project: Project) => void;
@@ -16,7 +16,7 @@ export default function ProjectList({
   selectedId, 
   onSelect 
 }: ProjectListProps) {
-  const { projects, tasks, deleteProject } = useAppStore();
+  const { projects, tasks, deleteProject, completeProject } = useAppStore();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   
   const getTaskCount = (projectId: string) => {
@@ -26,6 +26,19 @@ export default function ProjectList({
   const handleDelete = async (projectId: string) => {
     if (confirm('确定要删除这个项目吗？相关任务也会被删除。')) {
       await deleteProject(projectId);
+    }
+    setMenuOpenId(null);
+  };
+  
+  const handleComplete = async (projectId: string) => {
+    if (confirm('确定要完成这个项目吗？这将标记项目及其所有任务为已完成。')) {
+      // Complete all tasks in the project first
+      const projectTasks = tasks.filter(t => t.projectId === projectId && t.status === 'active');
+      for (const task of projectTasks) {
+        await useAppStore.getState().completeTask(task.id);
+      }
+      // Then mark the project as complete
+      await completeProject(projectId);
     }
     setMenuOpenId(null);
   };
@@ -88,7 +101,8 @@ export default function ProjectList({
             <span className="text-xs text-gray-400">{getTaskCount(project.id)}</span>
           </button>
           
-          {(onEdit || deleteProject) && (
+          {/* Always show menu since delete is available */}
+          {true && (
             <div className="relative">
               <button
                 onClick={() => setMenuOpenId(menuOpenId === project.id ? null : project.id)}
@@ -98,14 +112,23 @@ export default function ProjectList({
               </button>
               
               {menuOpenId === project.id && (
-                <div className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                  {project.status !== 'completed' && (
+                    <button
+                      onClick={() => handleComplete(project.id)}
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-t-lg"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      完成项目
+                    </button>
+                  )}
                   {onEdit && (
                     <button
                       onClick={() => {
                         onEdit(project);
                         setMenuOpenId(null);
                       }}
-                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-lg"
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Edit2 className="w-4 h-4" />
                       编辑

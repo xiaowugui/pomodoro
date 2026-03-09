@@ -580,8 +580,41 @@ class PomodoroApp {
   }
 }
 
-// 创建应用实例
-const pomodoroApp = new PomodoroApp();
-pomodoroApp.initialize().catch(console.error);
+/**
+ * 单实例锁机制
+ * 确保系统中只能运行一个番茄钟应用实例
+ * 必须在 app.whenReady() 之前调用
+ */
+const gotTheLock = app.requestSingleInstanceLock();
+
+// 创建应用实例（供 second-instance 事件使用）
+let pomodoroApp: PomodoroApp | null = null;
+
+if (!gotTheLock) {
+  // 另一个实例正在运行，退出当前实例
+  app.quit();
+} else {
+  // 主实例：监听第二个实例的启动
+  app.on('second-instance', (_event, argv) => {
+    console.log('[PomodoroApp] Second instance detected, argv:', argv);
+
+    // 聚焦到现有窗口
+    if (pomodoroApp && pomodoroApp.getMainWindow) {
+      const mainWindowManager = pomodoroApp.getMainWindow();
+      if (mainWindowManager) {
+        mainWindowManager.show();
+      }
+    }
+
+    // 如果第二个实例带有 --hidden 参数，不显示窗口
+    if (argv.includes('--hidden')) {
+      console.log('[PomodoroApp] Second instance launched with --hidden, keeping minimized');
+    }
+  });
+
+  // 初始化应用
+  pomodoroApp = new PomodoroApp();
+  pomodoroApp.initialize().catch(console.error);
+}
 
 export { pomodoroApp, PomodoroApp };

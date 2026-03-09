@@ -13,8 +13,28 @@ npm run dev:clean          # Clean dev start
 npm start                  # Launch Electron (requires build first)
 npm run dist               # Build all platforms
 npm run dist:win           # Windows installer
+npm run dist:win -- --dir  # Build unpacked (no installer)
 npm run clean              # Remove build artifacts
 ```
+
+## Build & Run Workflow (Development)
+
+每次代码修改后重新构建并运行的方法：
+
+```bash
+# 1. 构建代码
+npm run build
+
+# 2. 复制 dist 到 release (保留之前的 unpacked 构建)
+powershell -Command "Remove-Item -Path 'release\win-unpacked\resources\app\dist' -Recurse -Force -ErrorAction SilentlyContinue; Copy-Item -Path 'dist' -Destination 'release\win-unpacked\resources\app\' -Recurse -Force"
+
+# 3. 运行 exe
+# 直接运行 release\win-unpacked\Pomodoro App.exe
+```
+
+**注意**: `npm run dist:win` 会尝试下载代码签名工具，可能失败。使用上述手动复制方式更可靠。
+
+**exe 位置**: `release\win-unpacked\Pomodoro App.exe`
 
 ## Test Commands
 

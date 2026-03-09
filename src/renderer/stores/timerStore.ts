@@ -1,24 +1,7 @@
 import { create } from 'zustand';
-import { TimerState } from '@shared/types.ts';
+import { TimerState } from '@shared/types';
 
-declare global {
-  interface Window {
-    electronAPI: {
-      timerStart: (data?: any) => Promise<void>;
-      timerPause: () => Promise<void>;
-      timerResume: () => Promise<void>;
-      timerStop: () => Promise<void>;
-      timerSkip: () => Promise<void>;
-      timerComplete: () => Promise<void>;
-      onTimerTick: (callback: (state: TimerState) => void) => void;
-      onTimerComplete: (callback: (phase: string) => void) => void;
-      onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number }) => void) => void;
-      onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => void;
-      onDataUpdated: (callback: () => void) => void;
-      removeAllListeners: (channel: string) => void;
-    };
-  }
-}
+// Timer-specific store - uses global electronAPI from appStore.ts
 
 interface TimerStoreState extends TimerState {
   // UI state

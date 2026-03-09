@@ -93,7 +93,7 @@ function Calendar({ selectedDate, onSelectDate, datesWithTasks }: {
 }
 
 function DaySummary({ date }: { date: string }) {
-  const { getDailySummary, getTasksByDate, tasks } = useAppStore();
+  const { getDailySummary, getTasksByDate, tasks, completeTask } = useAppStore();
   
   const summary = getDailySummary(date);
   const dateTasks = getTasksByDate(date);
@@ -103,6 +103,10 @@ function DaySummary({ date }: { date: string }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
+  };
+  
+  const handleCompleteTask = async (taskId: string) => {
+    await completeTask(taskId);
   };
   
   return (
@@ -141,7 +145,11 @@ function DaySummary({ date }: { date: string }) {
           <div className="space-y-2">
             {activeTasks.map(task => (
               <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <input type="checkbox" className="w-5 h-5 rounded" />
+                <input 
+                  type="checkbox" 
+                  className="w-5 h-5 rounded cursor-pointer"
+                  onChange={() => handleCompleteTask(task.id)}
+                />
                 <span>{task.title}</span>
                 <span className="text-sm text-gray-500">
                   {task.completedPomodoros || 0}/{task.estimatedPomodoros}

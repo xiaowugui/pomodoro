@@ -1,5 +1,5 @@
 import { Play, Pause, Square, CheckCircle } from 'lucide-react';
-import { useTimerStore } from '../stores';
+import { useTimerStore, useAppStore } from '../stores';
 
 interface TimerControlsProps {
   size?: 'sm' | 'md' | 'lg';
@@ -7,6 +7,7 @@ interface TimerControlsProps {
 
 export default function TimerControls({ size = 'md' }: TimerControlsProps) {
   const { isRunning, phase, currentTaskId, start, pause, resume, stop, complete } = useTimerStore();
+  const { completeTask, loadAllData, tasks } = useAppStore();
   
   const sizeClasses = {
     sm: 'p-2',
@@ -28,6 +29,18 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
       pause();
     } else {
       resume();
+    }
+  };
+  
+  // 获取当前任务
+  const currentTask = currentTaskId ? tasks.find(t => t.id === currentTaskId) : null;
+  
+  // 处理完成任务
+  const handleCompleteTask = async () => {
+    if (!currentTaskId || !currentTask) return;
+    if (confirm('确定要完成这个任务吗？')) {
+      await completeTask(currentTaskId);
+      loadAllData();
     }
   };
   
@@ -65,7 +78,29 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
         )}
       </button>
       
-
+      {/* 完成任务按钮 - 显示在开始按钮旁边 */}
+      {currentTask && currentTask.status === 'active' && (
+        <button
+          onClick={handleCompleteTask}
+          className={`${sizeClasses[size]} rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg`}
+          title="标记任务完成"
+        >
+          <svg 
+            className={iconSizes[size]} 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M5 13l4 4L19 7" 
+            />
+          </svg>
+        </button>
+      )}
+      
     </div>
   );
 }

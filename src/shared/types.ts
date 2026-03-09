@@ -4,6 +4,8 @@ export interface Project {
   name: string;
   color: string;
   createdAt: string;
+  status: 'active' | 'completed';
+  completedAt?: string;
 }
 
 // 任务
@@ -170,6 +172,7 @@ export const IPC_CHANNELS = {
   CREATE_PROJECT: 'create-project',
   UPDATE_PROJECT: 'update-project',
   DELETE_PROJECT: 'delete-project',
+  COMPLETE_PROJECT: 'complete-project',
   
   // 任务
   GET_TASKS: 'get-tasks',

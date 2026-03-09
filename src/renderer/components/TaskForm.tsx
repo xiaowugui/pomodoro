@@ -8,13 +8,15 @@ interface TaskFormProps {
   defaultProjectId?: string;
   onSubmit: () => void;
   onCancel: () => void;
+  onCreateProject?: () => void;
 }
 
 export default function TaskForm({ 
   task, 
   defaultProjectId,
   onSubmit, 
-  onCancel 
+  onCancel,
+  onCreateProject
 }: TaskFormProps) {
   const { projects, createTask, updateTask } = useAppStore();
   const [title, setTitle] = useState(task?.title || '');
@@ -26,6 +28,15 @@ export default function TaskForm({
   const [isUrgent, setIsUrgent] = useState(task?.isUrgent ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === '__create_new__') {
+      onCreateProject?.();
+      return;
+    }
+    setProjectId(value);
+  };
   
   useEffect(() => {
     if (task) {
@@ -39,7 +50,11 @@ export default function TaskForm({
   }, [task]);
   
   useEffect(() => {
-    titleInputRef.current?.focus();
+    // Delay focus slightly to ensure DOM is ready
+    const timer = setTimeout(() => {
+      titleInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
   
   const handleAddDate = () => {
@@ -91,7 +106,7 @@ export default function TaskForm({
   const presetPomodoros = [1, 2, 3, 4, 5, 8];
   
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -112,6 +127,7 @@ export default function TaskForm({
             </label>
             <input
               ref={titleInputRef}
+              autoFocus
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -126,7 +142,7 @@ export default function TaskForm({
             </label>
             <select
               value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
+              onChange={handleProjectChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="">选择项目...</option>
@@ -135,6 +151,7 @@ export default function TaskForm({
                   {project.name}
                 </option>
               ))}
+              <option value="__create_new__">+ 创建新项目</option>
             </select>
           </div>
           

@@ -32,9 +32,15 @@ export class StorageManager {
     const data = await fs.promises.readFile(this.dataPath, 'utf-8');
     const parsed = JSON.parse(data) as Partial<AppState>;
     
+    // Migrate projects to have status field
+    const projects = (parsed.projects || []).map((p: Project) => ({
+      ...p,
+      status: p.status || 'active',
+    }));
+    
     this.data = {
       settings: { ...defaultSettings, ...parsed.settings },
-      projects: parsed.projects || [],
+      projects,
       tasks: parsed.tasks || [],
       logs: parsed.logs || [],
       dayExecutions: parsed.dayExecutions || [],
@@ -73,6 +79,7 @@ export class StorageManager {
       ...project,
       id: this.generateId(),
       createdAt: new Date().toISOString(),
+      status: project.status || 'active',
     };
     this.data.projects.push(newProject);
     this.save().catch(console.error);
