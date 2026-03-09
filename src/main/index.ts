@@ -549,6 +549,13 @@ class PomodoroApp {
   private handleBreakComplete(): void {
     console.log('[PomodoroApp] handleBreakComplete called');
     
+    // 防止重复处理 - 如果 phase 不是 break，说明已经处理过了
+    const phase = this.timer.getState().phase;
+    if (phase !== 'short_break' && phase !== 'long_break') {
+      console.log('[PomodoroApp] handleBreakComplete skipped - not in break phase');
+      return;
+    }
+    
     // 隐藏休息窗口
     this.breakWindows.hide();
     
