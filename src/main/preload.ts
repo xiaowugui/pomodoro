@@ -19,6 +19,16 @@ const IPC_CHANNELS = {
   UPDATE_TASK: 'update-task',
   DELETE_TASK: 'delete-task',
 
+  // 任务备注
+  GET_TASK_NOTES: 'get-task-notes',
+  GET_TASK_NOTE_BY_TASK: 'get-task-note-by-task',
+  CREATE_TASK_NOTE: 'create-task-note',
+  UPDATE_TASK_NOTE: 'update-task-note',
+  DELETE_TASK_NOTE: 'delete-task-note',
+  ADD_TASK_LINK: 'add-task-link',
+  UPDATE_TASK_LINK: 'update-task-link',
+  DELETE_TASK_LINK: 'delete-task-link',
+
   // 番茄钟日志
   GET_LOGS: 'get-logs',
   CREATE_LOG: 'create-log',
@@ -67,6 +77,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateTask: (task: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_TASK, task),
   deleteTask: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_TASK, id),
 
+  // 任务备注
+  getTaskNotes: () => ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_NOTES),
+  getTaskNoteByTask: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_TASK_NOTE_BY_TASK, taskId),
+  createTaskNote: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_TASK_NOTE, taskId),
+  updateTaskNote: (note: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_TASK_NOTE, note),
+  deleteTaskNote: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_TASK_NOTE, id),
+  addTaskLink: (noteId: string, link: any) => ipcRenderer.invoke(IPC_CHANNELS.ADD_TASK_LINK, noteId, link),
+  updateTaskLink: (noteId: string, link: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_TASK_LINK, noteId, link),
+  deleteTaskLink: (noteId: string, linkId: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_TASK_LINK, noteId, linkId),
+
   // 日志
   getLogs: () => ipcRenderer.invoke(IPC_CHANNELS.GET_LOGS),
   createLog: (log: any) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_LOG, log),
@@ -96,42 +116,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on(IPC_CHANNELS.TIMER_COMPLETE, (_, phase) => callback(phase))
   },
 
-  // 数据更新事件
+  // 推迟事件
+  onPostponeStart: (callback: (data: { postponeEndTime: number }) => void) => {
+    ipcRenderer.on('timer-postpone-start', (_, data) => callback(data))
+  },
+  onPostponeEnd: (callback: () => void) => {
+    ipcRenderer.on('timer-postpone-end', () => callback())
+  },
+  getPostponeState: () => ipcRenderer.invoke('timer-postpone-state'),
+
+  // Data updated listener
   onDataUpdated: (callback: () => void) => {
     ipcRenderer.on('data-updated', () => callback())
   },
 
-  // 休息窗口事件
-  onBreakWindowAction: (callback: (action: string) => void) => {
-    ipcRenderer.on(IPC_CHANNELS.BREAK_WINDOW_ACTION, (_, action) => callback(action))
-  },
-  onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number; canPostpone?: boolean; postponeCount?: number; postponeLimit?: number }) => void) => {
-    ipcRenderer.on('break-tick', (_, data) => callback(data))
-  },
-  onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => {
-    ipcRenderer.on('break-skip-status', (_, data) => callback(data))
-  },
-  onBreakPostponeCount: (callback: (data: { count: number; limit: number }) => void) => {
-    ipcRenderer.on('break-postpone-count', (_, data) => callback(data))
-  },
-  onBreakStrictMode: (callback: (data: { enabled: boolean }) => void) => {
-    ipcRenderer.on('break-strict-mode', (_, data) => callback(data))
-  },
-  closeBreakWindow: () => ipcRenderer.send(IPC_CHANNELS.BREAK_WINDOW_CLOSED),
-  
-  // 休息窗口动作
-  breakComplete: () => ipcRenderer.invoke('break-complete'),
-  breakPostpone: () => ipcRenderer.invoke('break-postpone'),
-  breakSkip: () => ipcRenderer.invoke('break-skip'),
-  getBreakSettings: () => ipcRenderer.invoke('get-break-settings'),
+  // 任务备注窗口
+  openTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('open-task-note-window', taskId),
+  closeTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('close-task-note-window', taskId),
 
-  // Stretchly-style break window APIs
-  getBreakData: () => ipcRenderer.invoke('send-break-data'),
-  finishBreak: () => ipcRenderer.invoke('finish-break'),
-  postponeBreak: () => ipcRenderer.invoke('postpone-break'),
-  signalBreakLoaded: () => ipcRenderer.invoke('break-loaded'),
-  
-  // 移除监听器
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel)
   },

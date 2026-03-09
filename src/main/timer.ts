@@ -9,6 +9,8 @@ interface TimerEvents {
   'break-start': (breakType: 'short_break' | 'long_break') => void;
   'break-end': () => void;
   'break-postpone': (count: number) => void;
+  'postpone-start': (postponeEndTime: number) => void;
+  'postpone-end': () => void;
   start: () => void;
   pause: () => void;
   resume: () => void;
@@ -24,6 +26,9 @@ export class TimerManager extends EventEmitter {
   private sessionStartTime: string | null = null;
   private postponeCount: number = 0;
   private postponeTimeoutId: NodeJS.Timeout | null = null;
+  // Postpone tracking
+  private isPostponed: boolean = false;
+  private postponeEndTime: number = 0;
 
 
   constructor(storage: StorageManager) {
@@ -177,12 +182,18 @@ export class TimerManager extends EventEmitter {
       clearTimeout(this.postponeTimeoutId);
     }
 
-    // 发送推迟事件
+    // 设置推迟结束时间
+    const postponeMs = this.settings.postponeMinutes * 60 * 1000;
+    this.isPostponed = true;
+    this.postponeEndTime = Date.now() + postponeMs;
+
+    // 发送推迟开始事件（带推迟结束时间）
+    this.emit('postpone-start', this.postponeEndTime);
+
+    // 发送推迟事件（保持向后兼容）
     this.emit('break-postpone', this.postponeCount);
 
     // 设置推迟后的自动恢复
-    const postponeMs = this.settings.postponeMinutes * 60 * 1000;
-    
     this.postponeTimeoutId = setTimeout(() => {
       this.resumeBreakAfterPostpone();
     }, postponeMs);
@@ -197,6 +208,13 @@ export class TimerManager extends EventEmitter {
     // 恢复到休息状态
     this.state.isRunning = true;
     this.sessionStartTime = new Date().toISOString();
+    
+    // 重置推迟状态
+    this.isPostponed = false;
+    this.postponeEndTime = 0;
+
+    // 发送推迟结束事件
+    this.emit('postpone-end');
     
     // 重新发送break-start事件以显示休息窗口
     const breakType = this.state.phase === 'long_break' ? 'long_break' : 'short_break';
@@ -218,6 +236,8 @@ export class TimerManager extends EventEmitter {
    */
   resetPostponeCount(): void {
     this.postponeCount = 0;
+    this.isPostponed = false;
+    this.postponeEndTime = 0;
     if (this.postponeTimeoutId) {
       clearTimeout(this.postponeTimeoutId);
       this.postponeTimeoutId = null;
@@ -458,6 +478,26 @@ export class TimerManager extends EventEmitter {
     const percentComplete = (elapsed / this.state.totalTime) * 100;
     
     return percentComplete >= this.settings.skipDelayPercent;
+  }
+
+  /**
+   * 获取推迟状态
+   */
+  getPostponeState(): { isPostponed: boolean; postponeEndTime: number } {
+    return {
+      isPostponed: this.isPostponed,
+      postponeEndTime: this.postponeEndTime,
+    };
+  }
+
+  /**
+   * 获取推迟剩余时间（毫秒）
+   */
+  getPostponeRemainingTime(): number {
+    if (!this.isPostponed || this.postponeEndTime === 0) {
+      return 0;
+    }
+    return Math.max(0, this.postponeEndTime - Date.now());
   }
 
   destroy(): void {

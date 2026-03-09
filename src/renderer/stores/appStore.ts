@@ -1,49 +1,37 @@
 import { create } from 'zustand';
-import { Project, Task, PomodoroLog, TaskDayExecution, TimerState } from '@shared/types';
+import { Project, Task, PomodoroLog, TaskDayExecution, TaskNote, TaskLink } from '@shared/types';
 
 declare global {
   interface Window {
     electronAPI: {
-      // Projects
       getProjects: () => Promise<Project[]>;
       createProject: (project: any) => Promise<Project>;
       updateProject: (project: any) => Promise<Project>;
       deleteProject: (id: string) => Promise<boolean>;
-      
-      // Tasks
       getTasks: () => Promise<Task[]>;
       createTask: (task: any) => Promise<Task>;
       updateTask: (task: any) => Promise<Task>;
       deleteTask: (id: string) => Promise<boolean>;
-      
-      // Logs
       getLogs: () => Promise<PomodoroLog[]>;
       createLog: (log: any) => Promise<PomodoroLog>;
       updateLog: (log: any) => Promise<PomodoroLog>;
-      
-      // Day Executions
       getDayExecutions: () => Promise<TaskDayExecution[]>;
       getDayExecutionsByDate: (date: string) => Promise<TaskDayExecution[]>;
       getDayExecutionsByTask: (taskId: string) => Promise<TaskDayExecution[]>;
       createDayExecution: (execution: any) => Promise<TaskDayExecution>;
       updateDayExecution: (execution: any) => Promise<TaskDayExecution>;
       deleteDayExecution: (id: string) => Promise<boolean>;
-      
-      // Timer control
-      timerStart: (data?: any) => Promise<void>;
-      timerPause: () => Promise<void>;
-      timerResume: () => Promise<void>;
-      timerStop: () => Promise<void>;
-      timerSkip: () => Promise<void>;
-      timerComplete: () => Promise<void>;
-      
-      // Timer events
-      onTimerTick: (callback: (state: TimerState) => void) => void;
-      onTimerComplete: (callback: (phase: string) => void) => void;
-      onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number }) => void) => void;
-      onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => void;
-      onDataUpdated: (callback: () => void) => void;
-      removeAllListeners: (channel: string) => void;
+      getTaskNotes: () => Promise<TaskNote[]>;
+      getTaskNoteByTask: (taskId: string) => Promise<TaskNote | undefined>;
+      createTaskNote: (taskId: string) => Promise<TaskNote>;
+      updateTaskNote: (note: TaskNote) => Promise<TaskNote>;
+      deleteTaskNote: (id: string) => Promise<boolean>;
+      addTaskLink: (noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>) => Promise<TaskLink>;
+      updateTaskLink: (noteId: string, link: TaskLink) => Promise<TaskLink>;
+      deleteTaskLink: (noteId: string, linkId: string) => Promise<boolean>;
+      // Task notes window
+      openTaskNoteWindow: (taskId: string) => Promise<boolean>;
+      closeTaskNoteWindow: (taskId: string) => Promise<boolean>;
     };
   }
 }
@@ -54,6 +42,7 @@ interface AppStoreState {
   tasks: Task[];
   logs: PomodoroLog[];
   dayExecutions: TaskDayExecution[];
+  taskNotes: TaskNote[];
   
   // Loading states
   isLoading: boolean;
@@ -64,7 +53,6 @@ interface AppStoreState {
   createProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<Project>;
   updateProject: (project: Project) => Promise<Project>;
   deleteProject: (projectId: string) => Promise<boolean>;
-  completeProject: (projectId: string) => Promise<Project>;
   
   // Actions - Tasks
   loadTasks: () => Promise<void>;
@@ -100,6 +88,14 @@ interface AppStoreState {
     completedTasks: number;
     streakDays: number;
   };
+  
+  // Actions - Task Notes
+  loadTaskNotes: () => Promise<void>;
+  getTaskNoteByTask: (taskId: string) => TaskNote | undefined;
+  createTaskNote: (taskId: string) => Promise<TaskNote>;
+  updateTaskNote: (note: TaskNote) => Promise<TaskNote>;
+  addTaskLink: (noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>) => Promise<TaskLink>;
+  deleteTaskLink: (noteId: string, linkId: string) => Promise<boolean>;
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
@@ -108,6 +104,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   tasks: [],
   logs: [],
   dayExecutions: [],
+  taskNotes: [],
   isLoading: false,
   error: null,
 
@@ -172,19 +169,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       set({ error: String(error), isLoading: false });
       throw error;
     }
-  },
-
-  completeProject: async (projectId: string) => {
-    const project = get().projects.find((p) => p.id === projectId);
-    if (!project) throw new Error(`Project not found: ${projectId}`);
-
-    const updatedProject: Project = {
-      ...project,
-      status: 'completed',
-      completedAt: new Date().toISOString(),
-    };
-
-    return get().updateProject(updatedProject);
   },
 
   // Tasks
@@ -305,21 +289,100 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   loadAllData: async () => {
     set({ isLoading: true, error: null });
     try {
-      const [projects, tasks, logs, dayExecutions] = await Promise.all([
+      const [projects, tasks, logs, dayExecutions, taskNotes] = await Promise.all([
         window.electronAPI.getProjects(),
         window.electronAPI.getTasks(),
         window.electronAPI.getLogs(),
         window.electronAPI.getDayExecutions(),
+        window.electronAPI.getTaskNotes(),
       ]);
       set({
         projects,
         tasks,
         logs,
         dayExecutions,
+        taskNotes,
         isLoading: false,
       });
     } catch (error) {
       set({ error: String(error), isLoading: false });
+    }
+  },
+
+  // Task Notes
+  loadTaskNotes: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const taskNotes = await window.electronAPI.getTaskNotes();
+      set({ taskNotes, isLoading: false });
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+    }
+  },
+
+  getTaskNoteByTask: (taskId: string): TaskNote | undefined => {
+    return get().taskNotes.find((n) => n.taskId === taskId);
+  },
+
+  createTaskNote: async (taskId: string): Promise<TaskNote> => {
+    set({ isLoading: true, error: null });
+    try {
+      const newNote = await window.electronAPI.createTaskNote(taskId);
+      set((state) => ({
+        taskNotes: [...state.taskNotes, newNote],
+        isLoading: false,
+      }));
+      return newNote;
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  updateTaskNote: async (note: TaskNote): Promise<TaskNote> => {
+    set({ isLoading: true, error: null });
+    try {
+      const updatedNote = await window.electronAPI.updateTaskNote(note);
+      set((state) => ({
+        taskNotes: state.taskNotes.map((n) =>
+          n.id === updatedNote.id ? updatedNote : n
+        ),
+        isLoading: false,
+      }));
+      return updatedNote;
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  addTaskLink: async (noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>): Promise<TaskLink> => {
+    set({ isLoading: true, error: null });
+    try {
+      const newLink = await window.electronAPI.addTaskLink(noteId, link);
+      // Reload task notes to get updated data
+      const taskNotes = await window.electronAPI.getTaskNotes();
+      set({ taskNotes, isLoading: false });
+      return newLink;
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  deleteTaskLink: async (noteId: string, linkId: string): Promise<boolean> => {
+    set({ isLoading: true, error: null });
+    try {
+      const success = await window.electronAPI.deleteTaskLink(noteId, linkId);
+      if (success) {
+        // Reload task notes to get updated data
+        const taskNotes = await window.electronAPI.getTaskNotes();
+        set({ taskNotes, isLoading: false });
+      }
+      return success;
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+      throw error;
     }
   },
 

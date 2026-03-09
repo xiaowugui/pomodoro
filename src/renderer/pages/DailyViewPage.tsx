@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Layout } from '../components';
+import { Layout, TaskForm } from '../components';
 import { useAppStore } from '../stores';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, CheckCircle, Target, Plus, X } from 'lucide-react';
+import { Task } from '@shared/types';
 
 function Calendar({ selectedDate, onSelectDate, datesWithTasks }: {
   selectedDate: string;
@@ -93,7 +94,9 @@ function Calendar({ selectedDate, onSelectDate, datesWithTasks }: {
 }
 
 function DaySummary({ date }: { date: string }) {
-  const { getDailySummary, getTasksByDate, tasks, completeTask } = useAppStore();
+  const { getDailySummary, getTasksByDate } = useAppStore();
+  const today = new Date().toISOString().split('T')[0];
+  const isToday = date === today;
   
   const summary = getDailySummary(date);
   const dateTasks = getTasksByDate(date);
@@ -103,10 +106,6 @@ function DaySummary({ date }: { date: string }) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
-  };
-  
-  const handleCompleteTask = async (taskId: string) => {
-    await completeTask(taskId);
   };
   
   return (
@@ -139,17 +138,14 @@ function DaySummary({ date }: { date: string }) {
         </div>
       </div>
       
-      {activeTasks.length > 0 && (
+      {/* Only show active tasks for non-today dates (today tasks shown in TaskPlanner above) */}
+      {!isToday && activeTasks.length > 0 && (
         <div className="mt-6">
-          <h3 className="font-semibold mb-3 text-gray-500">今日待办 ({activeTasks.length})</h3>
+          <h3 className="font-semibold mb-3 text-gray-500">待办任务 ({activeTasks.length})</h3>
           <div className="space-y-2">
             {activeTasks.map(task => (
               <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <input 
-                  type="checkbox" 
-                  className="w-5 h-5 rounded cursor-pointer"
-                  onChange={() => handleCompleteTask(task.id)}
-                />
+                <input type="checkbox" className="w-5 h-5 rounded" />
                 <span>{task.title}</span>
                 <span className="text-sm text-gray-500">
                   {task.completedPomodoros || 0}/{task.estimatedPomodoros}
@@ -200,7 +196,7 @@ function TaskPlanner() {
     const project = projects.find(p => p.id === projectId);
     return project?.color || '#9CA3AF';
   };
-  
+
   const handleAddTask = async (taskId: string) => {
     await addTaskToToday(taskId);
   };
@@ -208,27 +204,34 @@ function TaskPlanner() {
   const handleRemoveTask = async (taskId: string) => {
     await removeTaskFromToday(taskId);
   };
-  
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
+
+  // 打开任务备注窗口
+  const handleOpenTaskNotes = async (taskId: string) => {
+    if (window.electronAPI?.openTaskNoteWindow) {
+      await window.electronAPI.openTaskNoteWindow(taskId);
+    }
   };
-  
+
+  // Calculate totals - count all active tasks for today that have completed all pomodoros
+  const allTodayTasks = [...todayPlannedTasks, ...unplannedTasks];
+  const totalTasks = allTodayTasks.length;
+  const completedCount = allTodayTasks.filter(
+    t => (t.completedPomodoros || 0) >= t.estimatedPomodoros
+  ).length;
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Target className="w-6 h-6 text-red-500" />
-        <h2 className="text-xl font-bold">今日计划</h2>
-        <span className="text-sm text-gray-500">({todayPlannedTasks.length})</span>
-      </div>
-      
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
       {/* Planned tasks */}
       {todayPlannedTasks.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold mb-3 text-gray-500">已计划</h3>
           <div className="space-y-2">
             {todayPlannedTasks.map(task => (
-              <div key={task.id} className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <div 
+                key={task.id} 
+                className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40"
+                onDoubleClick={() => handleOpenTaskNotes(task.id)}
+              >
                 <div
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: getProjectColor(task.projectId) }}
@@ -266,7 +269,11 @@ function TaskPlanner() {
               <p className="text-sm text-gray-400 py-2">所有任务已添加到今日计划</p>
             ) : (
               unplannedTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                <div 
+                  key={task.id} 
+                  className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer"
+                  onDoubleClick={() => handleOpenTaskNotes(task.id)}
+                >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: getProjectColor(task.projectId) }}
@@ -295,16 +302,18 @@ function TaskPlanner() {
 export default function DailyViewPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(true);
-  const { tasks, dayExecutions, loadDayExecutions } = useAppStore();
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const { tasks, dayExecutions, loadDayExecutions, loadTasks } = useAppStore();
   
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await loadDayExecutions();
+      await Promise.all([loadDayExecutions(), loadTasks()]);
       setIsLoading(false);
     };
     loadData();
-  }, [loadDayExecutions]);
+  }, [loadDayExecutions, loadTasks]);
   
   const datesWithTasks = [...new Set(dayExecutions.map(de => de.date))];
   
@@ -322,6 +331,31 @@ export default function DailyViewPage() {
   // Check if selected date is today
   const today = new Date().toISOString().split('T')[0];
   const isToday = selectedDate === today;
+  
+  // Calculate task completion stats for display
+  const todayPlannedTasks = useAppStore.getState().getTodayPlannedTasks();
+  const allActiveTasksCount = tasks.filter(t => t.status === 'active').length;
+  const completedTodayCount = todayPlannedTasks.filter(
+    t => (t.completedPomodoros || 0) >= t.estimatedPomodoros
+  ).length;
+  
+  // Task form handlers
+  const handleCreateTask = () => {
+    setEditingTask(null);
+    setIsTaskFormOpen(true);
+  };
+
+  const handleTaskFormClose = () => {
+    setIsTaskFormOpen(false);
+    setEditingTask(null);
+  };
+
+  const handleTaskFormSubmit = async () => {
+    // Reload tasks to get the newly created task
+    await useAppStore.getState().loadTasks();
+    setIsTaskFormOpen(false);
+    setEditingTask(null);
+  };
   
   return (
     <Layout>
@@ -342,12 +376,41 @@ export default function DailyViewPage() {
           ) : (
             <>
               {/* Show task planner only for today */}
-              {isToday && <TaskPlanner />}
+              {isToday && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Target className="w-6 h-6 text-red-500" />
+                      <h2 className="text-xl font-bold">今日任务</h2>
+                      <span className="text-sm text-gray-500">
+                        {completedTodayCount}/{allActiveTasksCount} 完成
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleCreateTask}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      新建任务
+                    </button>
+                  </div>
+                  <TaskPlanner />
+                </div>
+              )}
               <DaySummary date={selectedDate} />
             </>
           )}
         </main>
       </div>
+
+      {/* Task Form Modal */}
+      {isTaskFormOpen && (
+        <TaskForm
+          task={editingTask}
+          onSubmit={handleTaskFormSubmit}
+          onCancel={handleTaskFormClose}
+        />
+      )}
     </Layout>
   );
 }

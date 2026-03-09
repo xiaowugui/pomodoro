@@ -17,6 +17,16 @@ export interface ElectronAPI {
   updateTask: (task: any) => Promise<void>
   deleteTask: (id: string) => Promise<void>
 
+  // 任务备注
+  getTaskNotes: () => Promise<any[]>
+  getTaskNoteByTask: (taskId: string) => Promise<any>
+  createTaskNote: (taskId: string) => Promise<any>
+  updateTaskNote: (note: any) => Promise<any>
+  deleteTaskNote: (id: string) => Promise<boolean>
+  addTaskLink: (noteId: string, link: any) => Promise<any>
+  updateTaskLink: (noteId: string, link: any) => Promise<any>
+  deleteTaskLink: (noteId: string, linkId: string) => Promise<boolean>
+
   // 日志
   getLogs: () => Promise<any[]>
 

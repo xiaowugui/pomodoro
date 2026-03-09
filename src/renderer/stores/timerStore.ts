@@ -1,11 +1,35 @@
 import { create } from 'zustand';
-import { TimerState } from '@shared/types';
+import { TimerState } from '@shared/types.ts';
 
-// Timer-specific store - uses global electronAPI from appStore.ts
+declare global {
+  interface Window {
+    electronAPI: {
+      timerStart: (data?: any) => Promise<void>;
+      timerPause: () => Promise<void>;
+      timerResume: () => Promise<void>;
+      timerStop: () => Promise<void>;
+      timerSkip: () => Promise<void>;
+      timerComplete: () => Promise<void>;
+      onTimerTick: (callback: (state: TimerState) => void) => void;
+      onTimerComplete: (callback: (phase: string) => void) => void;
+      onBreakTick: (callback: (data: { timeRemaining: number; totalTime: number; progress: number }) => void) => void;
+      onBreakSkipStatus: (callback: (data: { canSkip: boolean }) => void) => void;
+      onDataUpdated: (callback: () => void) => void;
+      // Postpone events
+      onPostponeStart: (callback: (data: { postponeEndTime: number }) => void) => void;
+      onPostponeEnd: (callback: () => void) => void;
+      getPostponeState: () => Promise<{ isPostponed: boolean; postponeEndTime: number }>;
+      removeAllListeners: (channel: string) => void;
+    };
+  }
+}
 
 interface TimerStoreState extends TimerState {
   // UI state
   canSkip: boolean;
+  // Postpone state
+  isPostponed: boolean;
+  postponeEndTime: number;
   
   // Actions - Timer control
   start: (taskId?: string) => Promise<void>;
@@ -24,9 +48,11 @@ interface TimerStoreState extends TimerState {
   // Actions - State updates from IPC
   updateState: (state: Partial<TimerState>) => void;
   setCanSkip: (canSkip: boolean) => void;
+  setPostponeState: (isPostponed: boolean, postponeEndTime: number) => void;
   
   // Formatting helpers
   getFormattedTime: () => string;
+  getFormattedPostponeTime: () => string;
   getProgress: () => number;
   getPhaseLabel: () => string;
   
@@ -52,6 +78,10 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
   
   // UI state
   canSkip: false,
+  
+  // Postpone state
+  isPostponed: false,
+  postponeEndTime: 0,
 
   // Timer control
   start: async (taskId) => {
@@ -111,9 +141,23 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     set({ canSkip });
   },
 
+  setPostponeState: (isPostponed, postponeEndTime) => {
+    set({ isPostponed, postponeEndTime });
+  },
+
   // Formatting helpers
   getFormattedTime: () => {
     return formatTime(get().timeRemaining);
+  },
+
+  getFormattedPostponeTime: () => {
+    const { postponeEndTime, isPostponed } = get();
+    if (!isPostponed || postponeEndTime === 0) {
+      return '00:00';
+    }
+    const remainingMs = Math.max(0, postponeEndTime - Date.now());
+    const remainingSec = Math.floor(remainingMs / 1000);
+    return formatTime(remainingSec);
   },
 
   getProgress: () => {
@@ -149,13 +193,27 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
       console.log('Timer complete:', phase);
     };
 
+    // Handle postpone start
+    const handlePostponeStart = (data: { postponeEndTime: number }) => {
+      get().setPostponeState(true, data.postponeEndTime);
+    };
+
+    // Handle postpone end
+    const handlePostponeEnd = () => {
+      get().setPostponeState(false, 0);
+    };
+
     window.electronAPI.onTimerTick(handleTimerTick);
     window.electronAPI.onTimerComplete(handleTimerComplete);
+    window.electronAPI.onPostponeStart(handlePostponeStart);
+    window.electronAPI.onPostponeEnd(handlePostponeEnd);
 
     // Cleanup function
     return () => {
       window.electronAPI.removeAllListeners('timer-tick');
       window.electronAPI.removeAllListeners('timer-complete');
+      window.electronAPI.removeAllListeners('timer-postpone-start');
+      window.electronAPI.removeAllListeners('timer-postpone-end');
     };
   },
 }));

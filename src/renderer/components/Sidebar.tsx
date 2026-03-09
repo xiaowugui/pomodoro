@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Timer, CheckSquare, Calendar, BarChart3, Settings } from 'lucide-react';
+import { Timer, CheckSquare, Calendar, BarChart3, Settings, FileText } from 'lucide-react';
 
 const navItems = [
   { path: '/timer', label: '专注', icon: Timer },
   { path: '/daily', label: '按日', icon: Calendar },
   { path: '/tasks', label: '任务', icon: CheckSquare },
+  { path: '/notes', label: '备注', icon: FileText },
   { path: '/stats', label: '统计', icon: BarChart3 },
   { path: '/settings', label: '设置', icon: Settings },
 ];

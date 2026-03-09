@@ -1,4 +1,4 @@
-import { Play, Pause, Square, CheckCircle } from 'lucide-react';
+import { Play, Pause, Square, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { useTimerStore, useAppStore } from '../stores';
 
 interface TimerControlsProps {
@@ -7,7 +7,11 @@ interface TimerControlsProps {
 
 export default function TimerControls({ size = 'md' }: TimerControlsProps) {
   const { isRunning, phase, currentTaskId, start, pause, resume, stop, complete } = useTimerStore();
-  const { completeTask, loadAllData, tasks } = useAppStore();
+  const { completeTask, tasks } = useAppStore();
+  
+  // Get current task to check if it's already completed
+  const currentTask = currentTaskId ? tasks.find(t => t.id === currentTaskId) : null;
+  const isTaskCompleted = currentTask?.status === 'completed';
   
   const sizeClasses = {
     sm: 'p-2',
@@ -32,15 +36,13 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
     }
   };
   
-  // 获取当前任务
-  const currentTask = currentTaskId ? tasks.find(t => t.id === currentTaskId) : null;
-  
-  // 处理完成任务
   const handleCompleteTask = async () => {
-    if (!currentTaskId || !currentTask) return;
-    if (confirm('确定要完成这个任务吗？')) {
-      await completeTask(currentTaskId);
-      loadAllData();
+    if (currentTaskId && !isTaskCompleted) {
+      try {
+        await completeTask(currentTaskId);
+      } catch (error) {
+        console.error('Failed to complete task:', error);
+      }
     }
   };
   
@@ -77,27 +79,15 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
           <Play className={iconSizes[size]} fill="currentColor" />
         )}
       </button>
-      
-      {/* 完成任务按钮 - 显示在开始按钮旁边 */}
-      {currentTask && currentTask.status === 'active' && (
+
+      {/* Complete Task button - shown when timer is idle and there's a current task that isn't completed */}
+      {phase === 'idle' && currentTaskId && !isTaskCompleted && (
         <button
           onClick={handleCompleteTask}
           className={`${sizeClasses[size]} rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg`}
-          title="标记任务完成"
+          title="完成任务"
         >
-          <svg 
-            className={iconSizes[size]} 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M5 13l4 4L19 7" 
-            />
-          </svg>
+          <CheckCircle2 className={iconSizes[size]} />
         </button>
       )}
       
