@@ -89,7 +89,6 @@ export default function ProjectForm({
             </label>
             <input
               ref={nameInputRef}
-              autoFocus
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}

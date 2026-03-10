@@ -21,6 +21,8 @@ class PomodoroApp {
   private tray: TrayManager;
   private shortcuts: ShortcutsManager;
   private timer: TimerManager;
+  // 防止休息结束通知重复发送
+  private isBreakCompleting: boolean = false;
 
   constructor() {
     this.storage = new StorageManager();
@@ -321,6 +323,10 @@ class PomodoroApp {
 
     // Stretchly-style break window IPC
     ipcMain.handle('finish-break', () => {
+      // 防止重复处理
+      if (this.isBreakCompleting) {
+        return true;
+      }
       this.breakWindows.finishBreak(true);
       // 通知计时器休息已完成
       if (this.timer.getState().phase === 'short_break' || this.timer.getState().phase === 'long_break') {
@@ -511,6 +517,9 @@ class PomodoroApp {
     
     console.log('[PomodoroApp] handleBreakStart called, breakType:', breakType);
     
+    // 重置完成标志，允许下一次完成处理
+    this.isBreakCompleting = false;
+    
     try {
       // 显示休息窗口（传递设置）
       this.breakWindows.show(breakType, settings);
@@ -541,6 +550,9 @@ class PomodoroApp {
     
     // 重置推迟计数
     this.timer.resetPostponeCount();
+    
+    // 重置完成标志，允许下一次完成处理
+    this.isBreakCompleting = false;
   }
 
   /**
@@ -549,12 +561,21 @@ class PomodoroApp {
   private handleBreakComplete(): void {
     console.log('[PomodoroApp] handleBreakComplete called');
     
+    // 防止重复处理 - 如果已经在完成过程中，直接返回
+    if (this.isBreakCompleting) {
+      console.log('[PomodoroApp] handleBreakComplete skipped - already completing');
+      return;
+    }
+    
     // 防止重复处理 - 如果 phase 不是 break，说明已经处理过了
     const phase = this.timer.getState().phase;
     if (phase !== 'short_break' && phase !== 'long_break') {
       console.log('[PomodoroApp] handleBreakComplete skipped - not in break phase');
       return;
     }
+    
+    // 设置标志位，防止重复处理
+    this.isBreakCompleting = true;
     
     // 隐藏休息窗口
     this.breakWindows.hide();

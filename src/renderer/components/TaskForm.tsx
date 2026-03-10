@@ -127,7 +127,6 @@ export default function TaskForm({
             </label>
             <input
               ref={titleInputRef}
-              autoFocus
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
