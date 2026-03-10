@@ -583,9 +583,8 @@ class PomodoroApp {
     // 注销休息快捷键
     this.shortcuts.unregisterBreakShortcuts();
     
-    // 注意：不再调用 timer.completeBreak()
-    // 因为在 timer.ts 的 handleTimerComplete() 中已经调用了 transitionToNextPhase()
-    // 如果再次调用会导致 phase 从 'work' 再次变为 'break'，导致重复显示休息窗口
+    // 调用 timer.skip() 转换到工作阶段，确保主窗口计时器显示正确
+    this.timer.skip();
     
     // 发送通知
     this.showNotification(
