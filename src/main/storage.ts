@@ -1,396 +1,312 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { app } from 'electron';
-import { Settings, Project, Task, PomodoroLog, AppState, defaultSettings, TaskDayExecution, TaskNote, TaskLink } from '../shared/types';
+import * as path from 'path';
+import {
+  Settings,
+  Project,
+  Task,
+  PomodoroLog,
+  TaskDayExecution,
+  TaskNote,
+  TaskLink,
+  AppState,
+  defaultSettings,
+} from '../shared/types';
 
-const DATA_FILE_NAME = 'data.json';
+import {
+  BackupManager,
+  MigrationManager,
+  createDefaultMigrations,
+  SettingsStorage,
+  ProjectsStorage,
+  TasksStorage,
+  LogsStorage,
+  ExecutionsStorage,
+  NotesStorage,
+} from './storage/index';
 
+/**
+ * StorageManager - Coordinates all modular storage components
+ * Provides backward-compatible API for the rest of the application
+ */
 export class StorageManager {
-  private dataPath: string;
-  private data: AppState;
+  private dataDir: string;
+  private backupManager: BackupManager;
+  private migrationManager: MigrationManager;
+  
+  // Modular storage components
+  private settingsStorage: SettingsStorage;
+  private projectsStorage: ProjectsStorage;
+  private tasksStorage: TasksStorage;
+  private logsStorage: LogsStorage;
+  private executionsStorage: ExecutionsStorage;
+  private notesStorage: NotesStorage;
 
   constructor() {
-    this.dataPath = path.join(app.getPath('userData'), DATA_FILE_NAME);
-    this.data = {
-      settings: { ...defaultSettings },
-      projects: [],
-      tasks: [],
-      logs: [],
-      dayExecutions: [],
-      taskNotes: [],
-    };
+    this.dataDir = app.getPath('userData');
+    
+    // Initialize backup manager
+    this.backupManager = new BackupManager({
+      dataDir: this.dataDir,
+      maxBackups: 10,
+      backupPrefix: 'data.json.backup',
+    });
+
+    // Initialize migration manager with default migrations
+    this.migrationManager = createDefaultMigrations();
+
+    // Initialize modular storage components
+    this.settingsStorage = new SettingsStorage(this.dataDir);
+    this.projectsStorage = new ProjectsStorage(this.dataDir);
+    this.tasksStorage = new TasksStorage(this.dataDir);
+    this.logsStorage = new LogsStorage(this.dataDir);
+    this.executionsStorage = new ExecutionsStorage(this.dataDir);
+    this.notesStorage = new NotesStorage(this.dataDir);
   }
 
   async initialize(): Promise<void> {
+    // Run migrations on legacy data file if it exists
+    await this.migrateLegacyData();
+    
+    // Initialize all storage modules
+    await Promise.all([
+      this.settingsStorage.initialize(),
+      this.projectsStorage.initialize(),
+      this.tasksStorage.initialize(),
+      this.logsStorage.initialize(),
+      this.executionsStorage.initialize(),
+      this.notesStorage.initialize(),
+    ]);
+  }
+
+  /**
+   * Migrate from legacy single-file storage to new modular structure
+   */
+  private async migrateLegacyData(): Promise<void> {
+    const legacyPath = path.join(this.dataDir, 'data.json');
+    
     try {
-      await this.load();
-    } catch (error) {
-      await this.save();
+      const fs = await import('fs');
+      await fs.promises.access(legacyPath);
+      
+      // Read legacy data
+      const rawData = await fs.promises.readFile(legacyPath, 'utf-8');
+      const legacyData = JSON.parse(rawData) as Partial<AppState>;
+      
+      // Run migrations
+      const migratedData = await this.migrationManager.runMigrations(legacyData);
+      
+      // Import data into new storage modules
+      if (migratedData.settings) {
+        await this.settingsStorage.importData({ settings: migratedData.settings as Settings });
+      }
+      
+      if (migratedData.projects) {
+        await this.projectsStorage.importData({ projects: migratedData.projects as Project[] });
+      }
+      
+      if (migratedData.tasks) {
+        await this.tasksStorage.importData({ tasks: migratedData.tasks as Task[] });
+      }
+      
+      if (migratedData.logs) {
+        await this.logsStorage.importData({ logs: migratedData.logs as PomodoroLog[] });
+      }
+      
+      if (migratedData.dayExecutions) {
+        await this.executionsStorage.importData({ dayExecutions: migratedData.dayExecutions as TaskDayExecution[] });
+      }
+      
+      if (migratedData.taskNotes) {
+        await this.notesStorage.importData({ taskNotes: migratedData.taskNotes as TaskNote[] });
+      }
+
+      // Backup legacy data and remove it
+      await this.backupManager.backupAs('data.json', 'legacy-data.json.backup');
+      const fs2 = await import('fs');
+      await fs2.promises.unlink(legacyPath);
+      
+      console.log('[StorageManager] Migration from legacy data completed');
+    } catch {
+      // No legacy data file - fresh install
+      console.log('[StorageManager] No legacy data found, starting fresh');
     }
   }
 
-  private async load(): Promise<void> {
-    const data = await fs.promises.readFile(this.dataPath, 'utf-8');
-    const parsed = JSON.parse(data) as Partial<AppState>;
-    
-    // Migrate projects to have status field
-    const projects = (parsed.projects || []).map((p: Project) => ({
-      ...p,
-      status: p.status || 'active',
-    }));
-    
-    this.data = {
-      settings: { ...defaultSettings, ...parsed.settings },
-      projects,
-      tasks: parsed.tasks || [],
-      logs: parsed.logs || [],
-      dayExecutions: parsed.dayExecutions || [],
-      taskNotes: parsed.taskNotes || [],
-    };
-  }
-
-  private async save(): Promise<void> {
-    try {
-      await fs.promises.mkdir(path.dirname(this.dataPath), { recursive: true });
-      await fs.promises.writeFile(
-        this.dataPath,
-        JSON.stringify(this.data, null, 2),
-        'utf-8'
-      );
-    } catch (error) {
-      console.error('Failed to save data:', error);
-      throw error;
-    }
-  }
-
+  // ===== Settings =====
   getSettings(): Settings {
-    return { ...this.data.settings };
+    return this.settingsStorage.getSettings();
   }
 
   setSettings(settings: Settings): void {
-    this.data.settings = { ...settings };
-    this.save().catch(console.error);
+    this.settingsStorage.setSettings(settings);
   }
 
+  // ===== Projects =====
   getProjects(): Project[] {
-    return [...this.data.projects];
+    return this.projectsStorage.getItems() as Project[];
   }
 
   createProject(project: Omit<Project, 'id' | 'createdAt'>): Project {
-    const newProject: Project = {
-      ...project,
-      id: this.generateId(),
-      createdAt: new Date().toISOString(),
-      status: project.status || 'active',
-    };
-    this.data.projects.push(newProject);
-    this.save().catch(console.error);
-    return newProject;
+    return this.projectsStorage.create(project);
   }
 
   updateProject(project: Project): Project {
-    const index = this.data.projects.findIndex(p => p.id === project.id);
-    if (index === -1) {
-      throw new Error(`Project not found: ${project.id}`);
-    }
-    this.data.projects[index] = { ...project };
-    this.save().catch(console.error);
-    return this.data.projects[index];
+    return this.projectsStorage.update(project);
   }
 
   deleteProject(projectId: string): boolean {
-    const index = this.data.projects.findIndex(p => p.id === projectId);
-    if (index === -1) {
-      return false;
+    // Delete associated tasks first
+    const taskIds = this.tasksStorage.deleteByProject(projectId);
+    
+    // Delete associated logs
+    for (const taskId of taskIds) {
+      this.logsStorage.deleteByTask(taskId);
+      this.executionsStorage.deleteByTask(taskId);
+      this.notesStorage.deleteByTask(taskId);
     }
     
-    const tasksToDelete = this.data.tasks.filter(t => t.projectId === projectId);
-    const taskIdsToDelete = tasksToDelete.map(t => t.id);
-    
-    this.data.projects.splice(index, 1);
-    this.data.tasks = this.data.tasks.filter(t => t.projectId !== projectId);
-    this.data.logs = this.data.logs.filter(l => !taskIdsToDelete.includes(l.taskId));
-    this.data.dayExecutions = this.data.dayExecutions.filter(de => !taskIdsToDelete.includes(de.taskId));
-    
-    this.save().catch(console.error);
-    return true;
+    return this.projectsStorage.delete(projectId);
   }
 
+  // ===== Tasks =====
   getTasks(): Task[] {
-    return [...this.data.tasks];
+    return this.tasksStorage.getItems() as Task[];
   }
 
   getTasksByProject(projectId: string): Task[] {
-    return this.data.tasks.filter(t => t.projectId === projectId);
+    return this.tasksStorage.getByProject(projectId);
   }
 
   createTask(task: Omit<Task, 'id' | 'createdAt'>): Task {
-    const newTask: Task = {
-      ...task,
-      id: this.generateId(),
-      createdAt: new Date().toISOString(),
-      workDates: task.workDates || [],
-    };
-    this.data.tasks.push(newTask);
-    this.save().catch(console.error);
-    return newTask;
+    return this.tasksStorage.create(task);
   }
 
   updateTask(task: Task): Task {
-    const index = this.data.tasks.findIndex(t => t.id === task.id);
-    if (index === -1) {
-      throw new Error(`Task not found: ${task.id}`);
-    }
-    this.data.tasks[index] = { ...task };
-    this.save().catch(console.error);
-    return this.data.tasks[index];
+    return this.tasksStorage.update(task);
   }
 
   deleteTask(taskId: string): boolean {
-    const index = this.data.tasks.findIndex(t => t.id === taskId);
-    if (index === -1) {
-      return false;
-    }
+    // Delete associated data
+    this.logsStorage.deleteByTask(taskId);
+    this.executionsStorage.deleteByTask(taskId);
+    this.notesStorage.deleteByTask(taskId);
     
-    this.data.tasks.splice(index, 1);
-    this.data.logs = this.data.logs.filter(l => l.taskId !== taskId);
-    this.data.dayExecutions = this.data.dayExecutions.filter(de => de.taskId !== taskId);
-    // Also delete associated task notes
-    this.data.taskNotes = this.data.taskNotes.filter(n => n.taskId !== taskId);
-    
-    this.save().catch(console.error);
-    return true;
+    return this.tasksStorage.delete(taskId);
   }
 
-  // ===== TaskNote CRUD =====
+  // ===== Task Notes =====
   getTaskNotes(): TaskNote[] {
-    return [...this.data.taskNotes];
+    return this.notesStorage.getItems() as TaskNote[];
   }
 
   getTaskNoteByTask(taskId: string): TaskNote | undefined {
-    return this.data.taskNotes.find(n => n.taskId === taskId);
+    return this.notesStorage.getByTask(taskId);
   }
 
   createTaskNote(taskId: string): TaskNote {
-    // Check if note already exists for this task
-    const existing = this.getTaskNoteByTask(taskId);
-    if (existing) {
-      return existing;
-    }
-    
-    const now = new Date().toISOString();
-    const newNote: TaskNote = {
-      id: this.generateId(),
-      taskId,
-      content: '',
-      links: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.data.taskNotes.push(newNote);
-    this.save().catch(console.error);
-    return newNote;
+    return this.notesStorage.create(taskId);
   }
 
   updateTaskNote(note: TaskNote): TaskNote {
-    const index = this.data.taskNotes.findIndex(n => n.id === note.id);
-    if (index === -1) {
-      throw new Error(`TaskNote not found: ${note.id}`);
-    }
-    this.data.taskNotes[index] = {
-      ...note,
-      updatedAt: new Date().toISOString(),
-    };
-    this.save().catch(console.error);
-    return this.data.taskNotes[index];
+    return this.notesStorage.update(note);
   }
 
   deleteTaskNote(noteId: string): boolean {
-    const index = this.data.taskNotes.findIndex(n => n.id === noteId);
-    if (index === -1) {
-      return false;
-    }
-    this.data.taskNotes.splice(index, 1);
-    this.save().catch(console.error);
-    return true;
+    return this.notesStorage.delete(noteId);
   }
 
-  // ===== TaskLink CRUD =====
   addTaskLink(noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>): TaskLink {
-    const noteIndex = this.data.taskNotes.findIndex(n => n.id === noteId);
-    if (noteIndex === -1) {
-      throw new Error(`TaskNote not found: ${noteId}`);
-    }
-    
-    const newLink: TaskLink = {
-      ...link,
-      id: this.generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    
-    this.data.taskNotes[noteIndex].links.push(newLink);
-    this.data.taskNotes[noteIndex].updatedAt = new Date().toISOString();
-    this.save().catch(console.error);
-    return newLink;
+    return this.notesStorage.addLink(noteId, link);
   }
 
   updateTaskLink(noteId: string, link: TaskLink): TaskLink {
-    const noteIndex = this.data.taskNotes.findIndex(n => n.id === noteId);
-    if (noteIndex === -1) {
-      throw new Error(`TaskNote not found: ${noteId}`);
-    }
-    
-    const linkIndex = this.data.taskNotes[noteIndex].links.findIndex(l => l.id === link.id);
-    if (linkIndex === -1) {
-      throw new Error(`TaskLink not found: ${link.id}`);
-    }
-    
-    this.data.taskNotes[noteIndex].links[linkIndex] = link;
-    this.data.taskNotes[noteIndex].updatedAt = new Date().toISOString();
-    this.save().catch(console.error);
-    return this.data.taskNotes[noteIndex].links[linkIndex];
+    return this.notesStorage.updateLink(noteId, link);
   }
 
   deleteTaskLink(noteId: string, linkId: string): boolean {
-    const noteIndex = this.data.taskNotes.findIndex(n => n.id === noteId);
-    if (noteIndex === -1) {
-      return false;
-    }
-    
-    const linkIndex = this.data.taskNotes[noteIndex].links.findIndex(l => l.id === linkId);
-    if (linkIndex === -1) {
-      return false;
-    }
-    
-    this.data.taskNotes[noteIndex].links.splice(linkIndex, 1);
-    this.data.taskNotes[noteIndex].updatedAt = new Date().toISOString();
-    this.save().catch(console.error);
-    return true;
+    return this.notesStorage.deleteLink(noteId, linkId);
   }
 
+  // ===== Logs =====
   getLogs(): PomodoroLog[] {
-    return [...this.data.logs];
+    return this.logsStorage.getItems() as PomodoroLog[];
   }
 
   getLogsByTask(taskId: string): PomodoroLog[] {
-    return this.data.logs.filter(l => l.taskId === taskId);
+    return this.logsStorage.getByTask(taskId);
   }
 
   getLogsByDateRange(startDate: string, endDate: string): PomodoroLog[] {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    
-    return this.data.logs.filter(l => {
-      const logDate = new Date(l.startTime);
-      return logDate >= start && logDate <= end;
-    });
+    return this.logsStorage.getByDateRange(startDate, endDate);
   }
 
   createLog(log: Omit<PomodoroLog, 'id'>): PomodoroLog {
-    const newLog: PomodoroLog = {
-      ...log,
-      id: this.generateId(),
-    };
-    this.data.logs.push(newLog);
-    this.save().catch(console.error);
-    return newLog;
+    return this.logsStorage.create(log);
   }
 
   updateLog(log: PomodoroLog): PomodoroLog {
-    const index = this.data.logs.findIndex(l => l.id === log.id);
-    if (index === -1) {
-      throw new Error(`Log not found: ${log.id}`);
-    }
-    this.data.logs[index] = { ...log };
-    this.save().catch(console.error);
-    return this.data.logs[index];
+    return this.logsStorage.update(log);
   }
 
   deleteLog(logId: string): boolean {
-    const index = this.data.logs.findIndex(l => l.id === logId);
-    if (index === -1) {
-      return false;
-    }
-    this.data.logs.splice(index, 1);
-    this.save().catch(console.error);
-    return true;
+    return this.logsStorage.delete(logId);
   }
 
-  // ===== TaskDayExecution CRUD =====
+  // ===== Day Executions =====
   getDayExecutions(): TaskDayExecution[] {
-    return [...this.data.dayExecutions];
+    return this.executionsStorage.getItems() as TaskDayExecution[];
   }
 
   getDayExecutionByDate(date: string): TaskDayExecution[] {
-    return this.data.dayExecutions.filter(de => de.date === date);
+    return this.executionsStorage.getByDate(date);
   }
 
   getDayExecutionByTask(taskId: string): TaskDayExecution[] {
-    return this.data.dayExecutions.filter(de => de.taskId === taskId);
+    return this.executionsStorage.getByTask(taskId);
   }
 
   getDayExecutionByTaskAndDate(taskId: string, date: string): TaskDayExecution | undefined {
-    return this.data.dayExecutions.find(de => de.taskId === taskId && de.date === date);
+    return this.executionsStorage.getByTaskAndDate(taskId, date);
   }
 
   createDayExecution(execution: Omit<TaskDayExecution, 'id' | 'createdAt'>): TaskDayExecution {
-    const newExecution: TaskDayExecution = {
-      ...execution,
-      id: this.generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    this.data.dayExecutions.push(newExecution);
-    this.save().catch(console.error);
-    return newExecution;
+    return this.executionsStorage.create(execution);
   }
 
   updateDayExecution(execution: TaskDayExecution): TaskDayExecution {
-    const index = this.data.dayExecutions.findIndex(de => de.id === execution.id);
-    if (index === -1) {
-      throw new Error(`DayExecution not found: ${execution.id}`);
-    }
-    this.data.dayExecutions[index] = { ...execution };
-    this.save().catch(console.error);
-    return this.data.dayExecutions[index];
+    return this.executionsStorage.update(execution);
   }
 
   deleteDayExecution(executionId: string): boolean {
-    const index = this.data.dayExecutions.findIndex(de => de.id === executionId);
-    if (index === -1) {
-      return false;
-    }
-    this.data.dayExecutions.splice(index, 1);
-    this.save().catch(console.error);
-    return true;
+    return this.executionsStorage.delete(executionId);
   }
 
   getDayExecutionsByDateRange(startDate: string, endDate: string): TaskDayExecution[] {
-    return this.data.dayExecutions.filter(de => de.date >= startDate && de.date <= endDate);
+    return this.executionsStorage.getByDateRange(startDate, endDate);
   }
 
+  // ===== Statistics =====
   getStats(): {
     totalPomodoros: number;
     totalWorkMinutes: number;
     completedTasks: number;
     streakDays: number;
   } {
+    const tasks = this.tasksStorage.getItems() as Task[];
+    const logs = this.logsStorage.getWorkLogsCompleted();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const validTaskIds = new Set(this.data.tasks.map(t => t.id));
+    const validTaskIds = new Set(tasks.map((t: Task) => t.id));
     
-    const completedLogs = this.data.logs.filter(l => 
-      l.completed && 
-      l.type === 'work' && 
+    const completedLogs = logs.filter((l: PomodoroLog) => 
       validTaskIds.has(l.taskId)
     );
     
-    const totalWorkMinutes = completedLogs.reduce((sum, l) => sum + l.duration, 0) / 60;
+    const totalWorkMinutes = completedLogs.reduce((sum: number, l: PomodoroLog) => sum + l.duration, 0) / 60;
     
     const uniqueDates = new Set(
-      completedLogs.map(l => new Date(l.startTime).toDateString())
+      completedLogs.map((l: PomodoroLog) => new Date(l.startTime).toDateString())
     );
     
     let streakDays = 0;
@@ -402,7 +318,7 @@ export class StorageManager {
       const checkDate = new Date(today);
       checkDate.setDate(checkDate.getDate() - i);
       
-      if (sortedDates[i].toDateString() === checkDate.toDateString()) {
+      if (sortedDates[i] && sortedDates[i].toDateString() === checkDate.toDateString()) {
         streakDays++;
       } else {
         break;
@@ -412,28 +328,128 @@ export class StorageManager {
     return {
       totalPomodoros: completedLogs.length,
       totalWorkMinutes: Math.round(totalWorkMinutes),
-      completedTasks: this.data.tasks.filter(t => t.status === 'completed').length,
+      completedTasks: tasks.filter((t: Task) => t.status === 'completed').length,
       streakDays,
     };
   }
 
+  // ===== Import/Export =====
   exportData(): AppState {
-    return { ...this.data };
+    return {
+      settings: this.settingsStorage.getSettings(),
+      projects: this.projectsStorage.getItems() as Project[],
+      tasks: this.tasksStorage.getItems() as Task[],
+      logs: this.logsStorage.getItems() as PomodoroLog[],
+      dayExecutions: this.executionsStorage.getItems() as TaskDayExecution[],
+      taskNotes: this.notesStorage.getItems() as TaskNote[],
+    };
   }
 
   async importData(data: AppState): Promise<void> {
-    this.data = {
-      settings: { ...defaultSettings, ...data.settings },
-      projects: data.projects || [],
-      tasks: data.tasks || [],
-      logs: data.logs || [],
-      dayExecutions: data.dayExecutions || [],
-      taskNotes: data.taskNotes || [],
-    };
-    await this.save();
+    // Create backup before import
+    await this.backupManager.backup();
+    
+    if (data.settings) {
+      this.settingsStorage.setSettings({ ...defaultSettings, ...data.settings });
+    }
+    
+    // Import projects
+    const currentProjects = this.projectsStorage.getItems() as Project[];
+    for (const project of data.projects || []) {
+      const existing = currentProjects.find((p: Project) => p.id === project.id);
+      if (existing) {
+        this.projectsStorage.update(project);
+      } else {
+        this.projectsStorage.create({
+          name: project.name,
+          color: project.color,
+          status: project.status,
+        });
+      }
+    }
+    
+    // Import tasks
+    const currentTasks = this.tasksStorage.getItems() as Task[];
+    for (const task of data.tasks || []) {
+      const existing = currentTasks.find(t => t.id === task.id);
+      if (existing) {
+        this.tasksStorage.update(task);
+      } else {
+        this.tasksStorage.create({
+          title: task.title,
+          projectId: task.projectId,
+          estimatedPomodoros: task.estimatedPomodoros,
+          completedPomodoros: task.completedPomodoros,
+          status: task.status,
+          workDates: task.workDates,
+          plannedDates: task.plannedDates,
+          isImportant: task.isImportant,
+          isUrgent: task.isUrgent,
+        });
+      }
+    }
+    
+    // Import logs
+    const currentLogs = this.logsStorage.getItems() as PomodoroLog[];
+    for (const log of data.logs || []) {
+      const existing = currentLogs.find((l: PomodoroLog) => l.id === log.id);
+      if (!existing) {
+        this.logsStorage.create(log);
+      }
+    }
+    
+    // Import executions
+    for (const execution of data.dayExecutions || []) {
+      const existing = this.executionsStorage.getById(execution.id);
+      if (!existing) {
+        this.executionsStorage.create(execution);
+      }
+    }
+    
+    // Import notes
+    for (const note of data.taskNotes || []) {
+      const existing = this.notesStorage.getById(note.id);
+      if (existing) {
+        this.notesStorage.update(note);
+      }
+    }
   }
 
-  private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // ===== Backup =====
+  async createBackup(): Promise<string | null> {
+    return this.backupManager.backup();
+  }
+
+  async listBackups(): Promise<{ path: string; timestamp: Date; size: number }[]> {
+    return this.backupManager.listBackups();
+  }
+
+  async restoreFromBackup(backupPath: string): Promise<boolean> {
+    const fs = await import('fs');
+    try {
+      const raw = await fs.promises.readFile(backupPath, 'utf-8');
+      const data = JSON.parse(raw) as AppState;
+      await this.importData(data);
+      return true;
+    } catch (error) {
+      console.error('[StorageManager] Restore failed:', error);
+      return false;
+    }
+  }
+
+  // ===== Helper for Timer =====
+  getProjectIdFromTask(taskId: string): string {
+    const task = this.tasksStorage.getById(taskId);
+    return task?.projectId || '';
+  }
+
+  incrementTaskPomodoro(taskId: string, duration: number): void {
+    this.tasksStorage.incrementPomodoro(taskId);
+    
+    const today = new Date().toISOString().split('T')[0];
+    const minutesWorked = Math.round(duration / 60);
+    
+    this.executionsStorage.upsertByTaskAndDate(taskId, today, 1, minutesWorked);
+    this.tasksStorage.addWorkDate(taskId, today);
   }
 }
