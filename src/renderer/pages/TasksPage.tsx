@@ -12,7 +12,9 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
+  // Separate filters for projects and tasks
+  const [projectFilter, setProjectFilter] = useState<'all' | 'active' | 'completed'>('active');
+  const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'completed'>('active');
 
   useEffect(() => {
     // 只在组件挂载时加载数据
@@ -66,17 +68,17 @@ export default function TasksPage() {
     ? tasks.filter((t) => t.projectId === selectedProjectId)
     : tasks;
 
-  // Apply status filter
+  // Apply task filter
   const statusFilteredTasks = filteredTasks.filter((t) => {
-    if (filter === 'active') return t.status === 'active';
-    if (filter === 'completed') return t.status === 'completed';
+    if (taskFilter === 'active') return t.status === 'active';
+    if (taskFilter === 'completed') return t.status === 'completed';
     return true;
   });
 
-  // Get status filtered projects
+  // Apply project filter
   const statusFilteredProjects = projects.filter((p) => {
-    if (filter === 'active') return p.status === 'active';
-    if (filter === 'completed') return p.status === 'completed';
+    if (projectFilter === 'active') return p.status === 'active';
+    if (projectFilter === 'completed') return p.status === 'completed';
     return true;
   });
 
@@ -91,7 +93,8 @@ export default function TasksPage() {
               onCreate={handleCreateProject}
               selectedId={selectedProjectId}
               onSelect={setSelectedProjectId}
-              filter={filter}
+              filter={projectFilter}
+              onFilterChange={setProjectFilter}
             />
           </div>
         </aside>
@@ -110,14 +113,14 @@ export default function TasksPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Filter buttons */}
+              {/* Filter buttons for tasks */}
               <div className="flex items-center gap-1 mr-2">
                 {(['active', 'completed', 'all'] as const).map((f) => (
                   <button
                     key={f}
-                    onClick={() => setFilter(f)}
+                    onClick={() => setTaskFilter(f)}
                     className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                      filter === f
+                      taskFilter === f
                         ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                         : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
@@ -149,7 +152,7 @@ export default function TasksPage() {
             onEdit={handleEditTask}
             onOpenNotes={handleOpenTaskNotes}
             showFilters={false}
-            externalFilter={filter}
+            externalFilter={taskFilter}
           />
         </main>
       </div>

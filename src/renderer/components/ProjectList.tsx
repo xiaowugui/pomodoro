@@ -9,6 +9,7 @@ interface ProjectListProps {
   selectedId?: string | null;
   onSelect?: (projectId: string | null) => void;
   filter?: 'all' | 'active' | 'completed';
+  onFilterChange?: (filter: 'all' | 'active' | 'completed') => void;
 }
 
 export default function ProjectList({ 
@@ -16,7 +17,8 @@ export default function ProjectList({
   onCreate, 
   selectedId, 
   onSelect,
-  filter = 'all'
+  filter = 'all',
+  onFilterChange
 }: ProjectListProps) {
   const { projects, tasks, deleteProject, completeProject } = useAppStore();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export default function ProjectList({
     return true;
   });
   
+  // Get task count - show based on project filter for consistency
   const getTaskCount = (projectId: string) => {
     const projectTasks = tasks.filter((t) => t.projectId === projectId);
     if (filter === 'active') {
@@ -61,6 +64,25 @@ export default function ProjectList({
   
   return (
     <div className="space-y-2">
+      {/* Filter buttons */}
+      {onFilterChange && (
+        <div className="flex items-center gap-1 mb-4">
+          {(['active', 'completed', 'all'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => onFilterChange(f)}
+              className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                filter === f
+                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {f === 'active' ? '未完成' : f === 'completed' ? '已完成' : '全部'}
+            </button>
+          ))}
+        </div>
+      )}
+      
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           项目
