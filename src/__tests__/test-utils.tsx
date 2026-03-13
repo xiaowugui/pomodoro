@@ -158,6 +158,7 @@ export const createMockTask = (overrides = {}) => ({
   plannedDates: [] as string[],
   isImportant: false,
   isUrgent: false,
+  taskType: 'normal' as const,
   ...overrides,
 });
 

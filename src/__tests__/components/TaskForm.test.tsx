@@ -170,13 +170,14 @@ describe('TaskForm Component', () => {
         expect(mockElectronAPI.createTask).toHaveBeenCalledWith({
           title: 'New Task',
           projectId: 'project-1',
-          estimatedPomodoros: 1, // Default
+          estimatedPomodoros: 1,
           completedPomodoros: 0,
           status: 'active',
           workDates: [],
           plannedDates: [],
           isImportant: false,
           isUrgent: false,
+          taskType: 'normal',
         });
       });
       

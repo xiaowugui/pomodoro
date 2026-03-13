@@ -1,5 +1,5 @@
 import { BaseStorage } from './base-storage';
-import { Task } from '../../shared/types';
+import { Task, TaskType } from '../../shared/types';
 
 interface TasksStorageData {
   tasks: Task[];
@@ -24,6 +24,7 @@ export class TasksStorage extends BaseStorage<TasksStorageData> {
       status: t.status || 'active',
       isImportant: t.isImportant ?? false,
       isUrgent: t.isUrgent ?? false,
+      taskType: t.taskType || 'normal',
     }));
     return { tasks };
   }
@@ -66,6 +67,18 @@ export class TasksStorage extends BaseStorage<TasksStorageData> {
     return this.data.tasks.filter(t => t.isImportant && t.isUrgent && t.status === 'active');
   }
 
+  getByType(taskType: Task['taskType']): Task[] {
+    return this.data.tasks.filter(t => t.taskType === taskType);
+  }
+
+  getAiTasks(): Task[] {
+    return this.getByType('ai');
+  }
+
+  getRegularTasks(): Task[] {
+    return this.data.tasks.filter(t => t.taskType === 'normal');
+  }
+
   create(task: Omit<Task, 'id' | 'createdAt'>): Task {
     const newTask: Task = {
       ...task,
@@ -78,6 +91,7 @@ export class TasksStorage extends BaseStorage<TasksStorageData> {
       status: task.status || 'active',
       isImportant: task.isImportant ?? false,
       isUrgent: task.isUrgent ?? false,
+      taskType: task.taskType || 'normal',
     };
     this.data.tasks.push(newTask);
     this.markDirty();

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Check, Clock, Trash2, Edit2, Play, MoreVertical, AlertCircle, Clock9 } from 'lucide-react';
+import { Check, Clock, Trash2, Edit2, Play, MoreVertical, AlertCircle, Clock9, Bot, Zap, FileText } from 'lucide-react';
 import { useAppStore } from '../stores';
-import { Task } from '@shared/types';
+import { Task, TaskType } from '@shared/types';
 
 interface TaskListProps {
   tasks?: Task[];
@@ -24,6 +24,7 @@ export default function TaskList({
 }: TaskListProps) {
   const { tasks: allTasks, projects, completeTask, deleteTask } = useAppStore();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'all' | TaskType>('all');
   
   const tasks = propTasks || allTasks;
   
@@ -34,6 +35,7 @@ export default function TaskList({
     if (projectId && task.projectId !== projectId) return false;
     if (effectiveFilter === 'active') return task.status === 'active';
     if (effectiveFilter === 'completed') return task.status === 'completed';
+    if (typeFilter !== 'all') return (task.taskType || 'normal') === typeFilter;
     return true;
   });
   
@@ -47,6 +49,18 @@ export default function TaskList({
     return project?.name || '无项目';
   };
   
+  // 获取任务类型信息
+  const getTaskTypeInfo = (task: Task): { label: string; color: string; icon: typeof Bot } | null => {
+    const taskType = task.taskType || 'normal';
+    if (taskType === 'ai') {
+      return { label: 'AI', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', icon: Bot };
+    }
+    if (taskType === 'normal') {
+      return { label: '普通', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', icon: FileText };
+    }
+    return null;
+  };
+
   // 获取任务优先级信息
   const getPriorityInfo = (task: Task) => {
     const isImportant = task.isImportant ?? false;
@@ -76,23 +90,41 @@ export default function TaskList({
   return (
     <div className="space-y-4">
       {showFilters && !externalFilter && (
-        <div className="flex items-center gap-2">
-          {(['all', 'active', 'completed'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => {
-                // This branch won't be reached when externalFilter is provided
-                // But we need a valid handler
-              }}
-              className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                effectiveFilter === f
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-            >
-              {f === 'all' ? '全部' : f === 'active' ? '进行中' : '已完成'}
-            </button>
-          ))}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            {(['all', 'active', 'completed'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  // This branch won't be reached when externalFilter is provided
+                  // But we need a valid handler
+                }}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  effectiveFilter === f
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                {f === 'all' ? '全部' : f === 'active' ? '进行中' : '已完成'}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">类型:</span>
+            {(['all', 'ai', 'normal'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                  typeFilter === t
+                    ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                {t === 'all' ? '全部' : t === 'ai' ? 'AI任务' : '普通'}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       
@@ -133,6 +165,17 @@ export default function TaskList({
                   style={{ backgroundColor: getProjectColor(task.projectId) }}
                 />
                 <span>{getProjectName(task.projectId)}</span>
+                {(() => {
+                  const taskTypeInfo = getTaskTypeInfo(task);
+                  if (!taskTypeInfo) return null;
+                  const Icon = taskTypeInfo.icon;
+                  return (
+                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded ${taskTypeInfo.color}`}>
+                      <Icon className="w-3 h-3" />
+                      {taskTypeInfo.label}
+                    </span>
+                  );
+                })()}
                 {(() => {
                   const priority = getPriorityInfo(task);
                   if (!priority) return null;

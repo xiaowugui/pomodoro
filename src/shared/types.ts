@@ -26,6 +26,9 @@ export interface TaskNote {
   updatedAt: string;
 }
 
+// 任务类型
+export type TaskType = 'ai' | 'normal';
+
 // 任务
 export interface Task {
   id: string;
@@ -41,6 +44,8 @@ export interface Task {
   // 四象限优先级
   isImportant: boolean;  // 是否重要
   isUrgent: boolean;     // 是否紧急
+  // 任务类型
+  taskType: TaskType;   // AI任务/普通任务
 }
 
 // 任务每日执行记录
@@ -63,6 +68,16 @@ export interface PomodoroLog {
   duration: number;
   completed: boolean;
   type: 'work' | 'short_break' | 'long_break';
+}
+
+// 空闲记录
+export interface IdleLog {
+  id: string;
+  taskId: string | 'no-task';
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  reason: 'idle' | 'locked';
 }
 
 // 设置
@@ -98,7 +113,11 @@ export interface Settings {
   // 通知设置
   soundEnabled: boolean;
   notificationEnabled: boolean;
-  
+   
+  // 空闲检测设置
+  idleDetectionEnabled: boolean;
+  idleThresholdMinutes: number;
+   
   // 外观
   theme: 'light' | 'dark' | 'system';
   accentColor: string;
@@ -142,6 +161,10 @@ export const defaultSettings: Settings = {
   
   soundEnabled: true,
   notificationEnabled: true,
+  
+  idleDetectionEnabled: true,
+  idleThresholdMinutes: 5,
+  
   theme: 'system',
   accentColor: '#ef4444',
   shortcuts: {
@@ -161,6 +184,7 @@ export interface AppState {
   logs: PomodoroLog[];
   dayExecutions: TaskDayExecution[];
   taskNotes: TaskNote[];
+  idleLogs: IdleLog[];
 }
 
 // 番茄钟计时器状态
@@ -275,4 +299,15 @@ export const IPC_CHANNELS = {
   // 全局快捷键
   REGISTER_BREAK_SHORTCUTS: 'register-break-shortcuts',
   UNREGISTER_BREAK_SHORTCUTS: 'unregister-break-shortcuts',
+
+  // 空闲日志
+  GET_IDLE_LOGS: 'get-idle-logs',
+  GET_IDLE_LOGS_BY_TASK: 'get-idle-logs-by-task',
+  GET_IDLE_LOGS_BY_DATE: 'get-idle-logs-by-date',
+  CREATE_IDLE_LOG: 'create-idle-log',
+  DELETE_IDLE_LOG: 'delete-idle-log',
+
+  // 空闲检测
+  SHOW_IDLE_ALERT: 'show-idle-alert',
+  IDLE_ALERT_RESPONSE: 'idle-alert-response',
 } as const;

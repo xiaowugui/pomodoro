@@ -54,7 +54,9 @@ describe('SettingsForm Component', () => {
       renderSettingsForm();
       
       expect(screen.getByText('短休息时长 (分钟)')).toBeInTheDocument();
-      expect(screen.getByDisplayValue(5)).toBeInTheDocument();
+      const shortBreakLabel = screen.getByText('短休息时长 (分钟)');
+      const shortBreakInput = shortBreakLabel.parentElement?.querySelector('input');
+      expect(shortBreakInput).toHaveValue(5);
     });
 
     it('should have long break duration input', () => {
@@ -222,10 +224,13 @@ describe('SettingsForm Component', () => {
     it('should update short break duration', () => {
       renderSettingsForm();
       
-      const shortBreakInput = screen.getByDisplayValue(5);
+      const shortBreakLabel = screen.getByText('短休息时长 (分钟)');
+      const shortBreakInput = shortBreakLabel.parentElement?.querySelector('input');
+      if (!shortBreakInput) return;
+      
       fireEvent.change(shortBreakInput, { target: { value: '10' } });
       
-      expect(screen.getByDisplayValue(10)).toBeInTheDocument();
+      expect(shortBreakInput).toHaveValue(10);
     });
 
     it('should update long break duration', () => {

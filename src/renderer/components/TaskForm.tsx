@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Plus, Calendar, Trash2, AlertCircle, Clock, Square } from 'lucide-react';
+import { X, Plus, Calendar, Trash2, AlertCircle, Clock, Square, Bot, Zap, FileText } from 'lucide-react';
 import { useAppStore } from '../stores';
-import { Task } from '@shared/types';
+import { Task, TaskType } from '@shared/types';
 
 interface TaskFormProps {
   task?: Task | null;
@@ -26,6 +26,7 @@ export default function TaskForm({
   const [newDate, setNewDate] = useState('');
   const [isImportant, setIsImportant] = useState(task?.isImportant ?? false);
   const [isUrgent, setIsUrgent] = useState(task?.isUrgent ?? false);
+  const [taskType, setTaskType] = useState<TaskType>(task?.taskType || 'normal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   
@@ -46,6 +47,7 @@ export default function TaskForm({
       setWorkDates(task.workDates || []);
       setIsImportant(task.isImportant ?? false);
       setIsUrgent(task.isUrgent ?? false);
+      setTaskType(task.taskType || 'normal');
     }
   }, [task]);
   
@@ -83,6 +85,7 @@ export default function TaskForm({
           workDates,
           isImportant,
           isUrgent,
+          taskType,
         });
       } else {
         await createTask({
@@ -95,6 +98,7 @@ export default function TaskForm({
           plannedDates: [] as string[],
           isImportant,
           isUrgent,
+          taskType,
         });
       }
       onSubmit();
@@ -179,6 +183,43 @@ export default function TaskForm({
                 className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center"
               >
                 <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* 任务类型选择 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              任务类型
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTaskType('ai')}
+                className={`p-3 rounded-lg border-2 flex flex-col items-center gap-1 transition-colors ${
+                  taskType === 'ai'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
+                }`}
+              >
+                <Bot className={`w-5 h-5 ${taskType === 'ai' ? 'text-purple-500' : 'text-gray-400'}`} />
+                <div className={`text-sm font-medium ${taskType === 'ai' ? 'text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                  AI任务
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaskType('normal')}
+                className={`p-3 rounded-lg border-2 flex flex-col items-center gap-1 transition-colors ${
+                  taskType === 'normal'
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-700'
+                }`}
+              >
+                <FileText className={`w-5 h-5 ${taskType === 'normal' ? 'text-orange-500' : 'text-gray-400'}`} />
+                <div className={`text-sm font-medium ${taskType === 'normal' ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                  普通任务
+                </div>
               </button>
             </div>
           </div>
