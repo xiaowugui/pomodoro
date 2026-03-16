@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Layout, ProjectList, TaskList, TaskForm, ProjectForm } from '../components';
 import { useAppStore } from '../stores';
 import { Task, Project, TaskType, IdleLog } from '@shared/types';
-import { Plus, FolderPlus, Clock, AlertCircle, Lock, X } from 'lucide-react';
+import { Plus, FolderPlus, Clock, AlertCircle, Lock, X, Check } from 'lucide-react';
 
 export default function TasksPage() {
   const { t } = useTranslation();
-  const { projects, tasks, loadAllData } = useAppStore();
+  const { projects, tasks, loadAllData, completeProject } = useAppStore();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
@@ -68,6 +68,16 @@ export default function TasksPage() {
     setEditingProject(null);
   };
 
+  const handleCompleteProject = async () => {
+    if (!selectedProjectId) return;
+    const project = projects.find(p => p.id === selectedProjectId);
+    if (!project) return;
+    
+    if (confirm(t('projects.confirmComplete'))) {
+      await completeProject(selectedProjectId);
+    }
+  };
+
   const filteredTasks = selectedProjectId
     ? tasks.filter((t) => t.projectId === selectedProjectId)
     : tasks;
@@ -123,6 +133,15 @@ export default function TasksPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {selectedProjectId && projects.find(p => p.id === selectedProjectId)?.status === 'active' && (
+                <button
+                  onClick={handleCompleteProject}
+                  className="flex items-center gap-2 px-4 py-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  {t('projects.complete')}
+                </button>
+              )}
               <button
                 onClick={() => setShowIdleHistory(true)}
                 className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
