@@ -10,7 +10,6 @@ interface IdleDetectorEvents {
 export class IdleDetector extends EventEmitter {
   private storage: StorageManager;
   private idleCheckInterval: NodeJS.Timeout | null = null;
-  private lastActivityTime: number = Date.now();
   private isIdleDetected: boolean = false;
   private idleStartTime: number | null = null;
   private currentTaskId: string | null = null;
@@ -41,7 +40,6 @@ export class IdleDetector extends EventEmitter {
   start(): void {
     if (this.isMonitoring) return;
     this.isMonitoring = true;
-    this.lastActivityTime = Date.now();
     this.isIdleDetected = false;
     this.idleStartTime = null;
 
@@ -94,13 +92,14 @@ export class IdleDetector extends EventEmitter {
     const state = timer.getState();
     if (state.phase !== 'work') return;
 
-    const now = Date.now();
-    const idleTime = now - this.lastActivityTime;
-    const thresholdMs = this.idleThresholdMinutes * 60 * 1000;
+    // 使用 Electron 的 powerMonitor 获取系统空闲时间（秒）
+    const systemIdleTime = powerMonitor.getSystemIdleTime();
+    const thresholdSeconds = this.idleThresholdMinutes * 60;
 
-    if (idleTime >= thresholdMs && !this.isIdleDetected) {
+    // 系统空闲时间超过阈值
+    if (systemIdleTime >= thresholdSeconds && !this.isIdleDetected) {
       this.isIdleDetected = true;
-      this.idleStartTime = now - idleTime;
+      this.idleStartTime = Date.now() - (systemIdleTime * 1000);
       this.handleIdleDetected();
     }
   }
@@ -131,7 +130,6 @@ export class IdleDetector extends EventEmitter {
 
   recordActivity(): void {
     const wasIdle = this.isIdleDetected;
-    this.lastActivityTime = Date.now();
 
     if (this.isIdleDetected && this.idleStartTime) {
       this.recordIdleLog('idle');
