@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Volume2, Bell, Monitor, Moon, Sun, Laptop, Keyboard, RotateCcw, Power } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Volume2, Bell, Monitor, Moon, Sun, Laptop, Keyboard, RotateCcw, Power, Globe } from 'lucide-react';
 import { useSettingsStore } from '../stores';
 import { Settings } from '@shared/types';
 
@@ -8,6 +9,7 @@ interface SettingsFormProps {
 }
 
 export default function SettingsForm({ onSave }: SettingsFormProps) {
+  const { t } = useTranslation();
   const settings = useSettingsStore();
   const [localSettings, setLocalSettings] = useState<Partial<Settings>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -30,7 +32,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
   };
   
   const handleReset = async () => {
-    if (confirm('确定要恢复默认设置吗？')) {
+    if (confirm(t('settings.confirmReset'))) {
       await settings.resetSettings();
       setLocalSettings({});
     }
@@ -43,12 +45,12 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Monitor className="w-5 h-5" />
-          计时器设置
+          {t('settings.timerSettings')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              专注时长 (分钟)
+              {t('settings.pomodoro')} {t('settings.minutes')}
             </label>
             <input
               type="number"
@@ -61,7 +63,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              短休息时长 (分钟)
+              {t('settings.shortBreak')} {t('settings.minutes')}
             </label>
             <input
               type="number"
@@ -74,7 +76,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              长休息时长 (分钟)
+              {t('settings.longBreak')} {t('settings.minutes')}
             </label>
             <input
               type="number"
@@ -87,7 +89,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              长休息间隔 (个)
+              {t('settings.longBreakInterval')} {t('settings.times')}
             </label>
             <input
               type="number"
@@ -104,7 +106,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Keyboard className="w-5 h-5" />
-          行为设置
+          {t('settings.behaviorSettings')}
         </h3>
         <div className="space-y-3">
           <label className="flex items-center gap-3">
@@ -114,10 +116,10 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
               onChange={(e) => handleChange('autoStartPomodoros', e.target.checked)}
               className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
             />
-            <span className="text-gray-700 dark:text-gray-300">自动开始下一个番茄钟</span>
+            <span className="text-gray-700 dark:text-gray-300">{t('settings.autoStartPomodoros')}</span>
           </label>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            休息弹窗会自动显示倒计时
+            {t('settings.autoStartPomodorosDesc')}
           </p>
         </div>
       </section>
@@ -125,7 +127,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Power className="w-5 h-5" />
-          系统设置
+          {t('settings.systemSettings')}
         </h3>
         <div className="space-y-3">
           <label className="flex items-center gap-3">
@@ -135,10 +137,10 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
               onChange={(e) => handleChange('autoStartEnabled', e.target.checked)}
               className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
             />
-            <span className="text-gray-700 dark:text-gray-300">开机自动启动</span>
+            <span className="text-gray-700 dark:text-gray-300">{t('settings.autoStartEnabled')}</span>
           </label>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            登录Windows时自动启动番茄钟应用
+            {t('settings.autoStartEnabledDesc')}
           </p>
         </div>
       </section>
@@ -146,7 +148,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Bell className="w-5 h-5" />
-          通知设置
+          {t('settings.notificationSettings')}
         </h3>
         <div className="space-y-3">
           <label className="flex items-center gap-3">
@@ -156,7 +158,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
               onChange={(e) => handleChange('soundEnabled', e.target.checked)}
               className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
             />
-            <span className="text-gray-700 dark:text-gray-300">启用声音提醒</span>
+            <span className="text-gray-700 dark:text-gray-300">{t('settings.soundEnabled')}</span>
           </label>
           <label className="flex items-center gap-3">
             <input
@@ -165,15 +167,76 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
               onChange={(e) => handleChange('notificationEnabled', e.target.checked)}
               className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
             />
-            <span className="text-gray-700 dark:text-gray-300">启用桌面通知</span>
+            <span className="text-gray-700 dark:text-gray-300">{t('settings.notificationEnabled')}</span>
           </label>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <Globe className="w-5 h-5" />
+          {t('settings.language')}
+        </h3>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => handleChange('language', 'zh')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              currentSettings.language === 'zh'
+                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            中文
+          </button>
+          <button
+            onClick={() => handleChange('language', 'en')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              currentSettings.language === 'en'
+                ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            English
+          </button>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <Monitor className="w-5 h-5" />
+          {t('settings.idleDetectionSettings')}
+        </h3>
+        <div className="space-y-4">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={currentSettings.idleDetectionEnabled ?? true}
+              onChange={(e) => handleChange('idleDetectionEnabled', e.target.checked)}
+              className="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
+            />
+            <span className="text-gray-700 dark:text-gray-300">{t('settings.idleDetectionEnabled')}</span>
+          </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t('settings.idleThresholdMinutes')} {t('settings.minutes')}
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={15}
+              value={currentSettings.idleThresholdMinutes ?? 5}
+              onChange={(e) => handleChange('idleThresholdMinutes', parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 mt-1">{t('settings.idleThresholdMinutesDesc')}</p>
+          </div>
         </div>
       </section>
       
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Moon className="w-5 h-5" />
-          外观设置
+          {t('settings.appearanceSettings')}
         </h3>
         <div className="flex items-center gap-4">
           <button
@@ -185,7 +248,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
             }`}
           >
             <Sun className="w-4 h-4" />
-            浅色
+            {t('settings.themeLight')}
           </button>
           <button
             onClick={() => handleChange('theme', 'dark')}
@@ -196,7 +259,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
             }`}
           >
             <Moon className="w-4 h-4" />
-            深色
+            {t('settings.themeDark')}
           </button>
           <button
             onClick={() => handleChange('theme', 'system')}
@@ -207,20 +270,20 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
             }`}
           >
             <Laptop className="w-4 h-4" />
-            跟随系统
+            {t('settings.themeSystem')}
           </button>
         </div>
       </section>
-      
+
       <section>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Keyboard className="w-5 h-5" />
-          快捷键
+          {t('settings.shortcuts')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              开始/暂停
+              {t('settings.shortcutToggle')}
             </label>
             <input
               type="text"
@@ -231,7 +294,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              跳过阶段
+              {t('settings.shortcutSkip')}
             </label>
             <input
               type="text"
@@ -249,13 +312,13 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
           className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          恢复默认
+          {t('settings.resetDefaults')}
         </button>
         
         <div className="flex items-center gap-3">
           {hasChanges && (
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              有未保存的更改
+              {t('settings.unsavedChanges')}
             </span>
           )}
           <button
@@ -263,7 +326,7 @@ export default function SettingsForm({ onSave }: SettingsFormProps) {
             disabled={!hasChanges || isSaving}
             className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSaving ? '保存中...' : '保存设置'}
+            {isSaving ? t('settings.saving') : t('settings.saveSettings')}
           </button>
         </div>
       </div>

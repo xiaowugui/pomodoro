@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Calendar, Trash2, AlertCircle, Clock, Square, Bot, Zap, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores';
 import { Task, TaskType } from '@shared/types';
 
@@ -18,6 +19,7 @@ export default function TaskForm({
   onCancel,
   onCreateProject
 }: TaskFormProps) {
+  const { t } = useTranslation();
   const { projects, createTask, updateTask } = useAppStore();
   const [title, setTitle] = useState(task?.title || '');
   const [projectId, setProjectId] = useState(task?.projectId || defaultProjectId || '');
@@ -114,11 +116,12 @@ export default function TaskForm({
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {task ? '编辑任务' : '新建任务'}
+            {task ? t('tasks.editTask') : t('tasks.newTask')}
           </h2>
           <button
             onClick={onCancel}
-            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-gray-400 rounded"
+            aria-label={t('common.close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -127,40 +130,44 @@ export default function TaskForm({
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              任务名称
+              {t('tasks.title')}
             </label>
             <input
               ref={titleInputRef}
               type="text"
+              name="taskTitle"
+              autocomplete="off"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="输入任务名称..."
+              placeholder={t('tasks.titlePlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              项目
+              {t('tasks.project')}
             </label>
             <select
               value={projectId}
               onChange={handleProjectChange}
+              name="project"
+              autocomplete="off"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             >
-              <option value="">选择项目...</option>
+              <option value="">{t('tasks.selectProject')}</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>
               ))}
-              <option value="__create_new__">+ 创建新项目</option>
+              <option value="__create_new__">{t('tasks.createNewProject')}</option>
             </select>
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              预估番茄钟
+              {t('tasks.estimated')}
             </label>
             <div className="flex items-center gap-2">
               {presetPomodoros.map((num) => (
@@ -181,8 +188,9 @@ export default function TaskForm({
                 type="button"
                 onClick={() => setEstimatedPomodoros((p) => p + 1)}
                 className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center"
+                aria-label={t('tasks.addPomodoro')}
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -190,7 +198,7 @@ export default function TaskForm({
           {/* 任务类型选择 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              任务类型
+              {t('tasks.taskType')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -202,9 +210,9 @@ export default function TaskForm({
                     : 'border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
                 }`}
               >
-                <Bot className={`w-5 h-5 ${taskType === 'ai' ? 'text-purple-500' : 'text-gray-400'}`} />
+                <Bot className={`w-5 h-5 ${taskType === 'ai' ? 'text-purple-500' : 'text-gray-400'}`} aria-hidden="true" />
                 <div className={`text-sm font-medium ${taskType === 'ai' ? 'text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                  AI任务
+                  {t('tasks.aiTask')}
                 </div>
               </button>
               <button
@@ -216,9 +224,9 @@ export default function TaskForm({
                     : 'border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-700'
                 }`}
               >
-                <FileText className={`w-5 h-5 ${taskType === 'normal' ? 'text-orange-500' : 'text-gray-400'}`} />
+                <FileText className={`w-5 h-5 ${taskType === 'normal' ? 'text-orange-500' : 'text-gray-400'}`} aria-hidden="true" />
                 <div className={`text-sm font-medium ${taskType === 'normal' ? 'text-orange-700 dark:text-orange-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                  普通任务
+                  {t('tasks.normalTask')}
                 </div>
               </button>
             </div>
@@ -227,7 +235,7 @@ export default function TaskForm({
           {/* 四象限优先级选择 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              优先级（四象限）
+              {t('tasks.priority')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {/* 重要且紧急 - 第一象限 */}
@@ -240,12 +248,12 @@ export default function TaskForm({
                     : 'border-gray-200 dark:border-gray-600 hover:border-red-300 dark:hover:border-red-700'
                 }`}
               >
-                <AlertCircle className={`w-5 h-5 ${isImportant && isUrgent ? 'text-red-500' : 'text-gray-400'}`} />
+                <AlertCircle className={`w-5 h-5 ${isImportant && isUrgent ? 'text-red-500' : 'text-gray-400'}`} aria-hidden="true" />
                 <div className="text-left">
                   <div className={`font-medium text-sm ${isImportant && isUrgent ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                    重要且紧急
+                    {t('tasks.importantUrgent')}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">立即执行</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('tasks.doNow')}</div>
                 </div>
               </button>
               
@@ -259,12 +267,12 @@ export default function TaskForm({
                     : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-700'
                 }`}
               >
-                <Clock className={`w-5 h-5 ${isImportant && !isUrgent ? 'text-blue-500' : 'text-gray-400'}`} />
+                <Clock className={`w-5 h-5 ${isImportant && !isUrgent ? 'text-blue-500' : 'text-gray-400'}`} aria-hidden="true" />
                 <div className="text-left">
                   <div className={`font-medium text-sm ${isImportant && !isUrgent ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                    重要不紧急
+                    {t('tasks.importantNotUrgent')}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">计划执行</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('tasks.schedule')}</div>
                 </div>
               </button>
               
@@ -278,12 +286,12 @@ export default function TaskForm({
                     : 'border-gray-200 dark:border-gray-600 hover:border-yellow-300 dark:hover:border-yellow-700'
                 }`}
               >
-                <Clock className={`w-5 h-5 ${!isImportant && isUrgent ? 'text-yellow-500' : 'text-gray-400'}`} />
+                <Clock className={`w-5 h-5 ${!isImportant && isUrgent ? 'text-yellow-500' : 'text-gray-400'}`} aria-hidden="true" />
                 <div className="text-left">
                   <div className={`font-medium text-sm ${!isImportant && isUrgent ? 'text-yellow-700 dark:text-yellow-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                    紧急不重要
+                    {t('tasks.urgentNotImportant')}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">委托他人</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('tasks.delegate')}</div>
                 </div>
               </button>
               
@@ -297,12 +305,12 @@ export default function TaskForm({
                     : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
                 }`}
               >
-                <Square className={`w-5 h-5 ${!isImportant && !isUrgent ? 'text-gray-500' : 'text-gray-400'}`} />
+                <Square className={`w-5 h-5 ${!isImportant && !isUrgent ? 'text-gray-500' : 'text-gray-400'}`} aria-hidden="true" />
                 <div className="text-left">
                   <div className={`font-medium text-sm ${!isImportant && !isUrgent ? 'text-gray-700 dark:text-gray-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                    不重要不紧急
+                    {t('tasks.notImportantNotUrgent')}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">可删除</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{t('tasks.canDelete')}</div>
                 </div>
               </button>
             </div>
@@ -312,7 +320,7 @@ export default function TaskForm({
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
-                执行日期
+                {t('tasks.executionDate')}
               </label>
               <div className="flex items-center gap-2 mb-2">
                 <input
@@ -327,7 +335,7 @@ export default function TaskForm({
                   disabled={!newDate}
                   className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  添加
+                  {t('common.add')}
                 </button>
               </div>
               {workDates.length > 0 && (
@@ -342,15 +350,16 @@ export default function TaskForm({
                         type="button"
                         onClick={() => handleRemoveDate(date)}
                         className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                        aria-label={`${t('common.remove')} ${date}`}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-3 h-3" aria-hidden="true" />
                       </button>
                     </span>
                   ))}
                 </div>
               )}
               {workDates.length === 0 && (
-                <p className="text-sm text-gray-500">暂无执行日期</p>
+                <p className="text-sm text-gray-500">{t('tasks.noExecutionDate')}</p>
               )}
             </div>
           )}
@@ -361,14 +370,14 @@ export default function TaskForm({
               onClick={onCancel}
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              取消
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !projectId || isSubmitting}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isSubmitting ? '保存中...' : task ? '保存' : '创建'}
+              {isSubmitting ? t('tasks.saving') : task ? t('common.save') : t('common.create')}
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppStore } from '../stores';
+import { useTranslation } from 'react-i18next';
 import { TaskNote, TaskLink } from '@shared/types';
 import { 
   Save, 
@@ -14,6 +15,7 @@ import {
 
 // 弹窗专用组件 - 只显示单个任务备注，无侧边栏
 export default function TaskNotePopup() {
+  const { t } = useTranslation();
   const urlParams = useParams<{ taskId: string }>();
   const { tasks, projects, taskNotes, getTaskNoteByTask, createTaskNote, updateTaskNote, addTaskLink, deleteTaskLink, loadAllData } = useAppStore();
   
@@ -82,7 +84,7 @@ export default function TaskNotePopup() {
 
   const handleDeleteLink = async (linkId: string) => {
     if (!currentNote) return;
-    if (!confirm('确定要删除这个链接吗？')) return;
+    if (!confirm(t('notes.confirmDeleteLink'))) return;
     setIsSaving(true);
     try {
       await deleteTaskLink(currentNote.id, linkId);
@@ -98,7 +100,7 @@ export default function TaskNotePopup() {
 
   const getProjectName = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
-    return project?.name || '无项目';
+    return project?.name || t('notes.noProject');
   };
 
   const getProjectColor = (projectId: string) => {
@@ -112,7 +114,7 @@ export default function TaskNotePopup() {
         <div className="flex items-center justify-center h-[calc(100vh-3rem)]">
           <div className="text-center">
             <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-            <p className="text-gray-500 dark:text-gray-400">无法加载任务信息</p>
+            <p className="text-gray-500 dark:text-gray-400">{t('notes.cannotLoadTask')}</p>
           </div>
         </div>
       </div>
@@ -146,7 +148,7 @@ export default function TaskNotePopup() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                备注内容
+                {t('notes.noteContent')}
               </label>
               <button
                 onClick={handleSaveContent}
@@ -154,13 +156,13 @@ export default function TaskNotePopup() {
                 className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? '保存中...' : '保存'}
+                {isSaving ? t('notes.saving') : t('notes.save')}
               </button>
             </div>
             <textarea
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
-              placeholder="在此输入任务的详细备注..."
+              placeholder={t('notes.notePlaceholder')}
               className="w-full h-64 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
             />
           </div>
@@ -170,14 +172,14 @@ export default function TaskNotePopup() {
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                 <LinkIcon className="w-4 h-4" />
-                相关链接
+                {t('notes.relatedLinks')}
               </label>
               <button
                 onClick={() => setShowLinkForm(!showLinkForm)}
                 className="flex items-center gap-1 px-3 py-1.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm"
               >
                 <Plus className="w-4 h-4" />
-                添加链接
+                {t('notes.addLinkButton')}
               </button>
             </div>
 
@@ -188,14 +190,14 @@ export default function TaskNotePopup() {
                     type="text"
                     value={newLinkTitle}
                     onChange={(e) => setNewLinkTitle(e.target.value)}
-                    placeholder="链接标题"
+                    placeholder={t('notes.linkTitle')}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                   <input
                     type="url"
                     value={newLinkUrl}
                     onChange={(e) => setNewLinkUrl(e.target.value)}
-                    placeholder="链接地址 (https://...)"
+                    placeholder={t('notes.linkUrl')}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                   <div className="flex items-center gap-2">
@@ -204,7 +206,7 @@ export default function TaskNotePopup() {
                       disabled={isSaving || !newLinkTitle.trim() || !newLinkUrl.trim()}
                       className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      添加
+                      {t('notes.add')}
                     </button>
                     <button
                       onClick={() => {
@@ -214,7 +216,7 @@ export default function TaskNotePopup() {
                       }}
                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
-                      取消
+                      {t('notes.cancel')}
                     </button>
                   </div>
                 </div>
@@ -252,7 +254,7 @@ export default function TaskNotePopup() {
                 ))
               ) : (
                 <p className="text-gray-400 dark:text-gray-500 text-sm py-4 text-center">
-                  暂无关联链接
+                  {t('notes.noLinks')}
                 </p>
               )}
             </div>
@@ -260,7 +262,7 @@ export default function TaskNotePopup() {
 
           {currentNote && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-6">
-              最后更新: {new Date(currentNote.updatedAt).toLocaleString('zh-CN')}
+              {t('notes.lastUpdated')}: {new Date(currentNote.updatedAt).toLocaleString('zh-CN')}
             </p>
           )}
         </div>

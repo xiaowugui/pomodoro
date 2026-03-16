@@ -7,3 +7,4 @@ export { TasksStorage } from './tasks-storage';
 export { LogsStorage } from './logs-storage';
 export { ExecutionsStorage } from './executions-storage';
 export { NotesStorage } from './notes-storage';
+export { IdleLogsStorage } from './idle-logs-storage';

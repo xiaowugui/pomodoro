@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import BreakOverlay from '../components/BreakOverlay';
+import { Bot, Check, Circle } from 'lucide-react';
 
 export default function BreakPage() {
+  const { t } = useTranslation();
   // 状态管理
   const [timeRemaining, setTimeRemaining] = useState(5 * 60);
   const [totalTime, setTotalTime] = useState(5 * 60);
@@ -13,6 +16,9 @@ export default function BreakPage() {
   const [endBreakShortcut, setEndBreakShortcut] = useState('Ctrl+X');
   const [postponeShortcut, setPostponeShortcut] = useState('Ctrl+P');
   const [postponeEnabled, setPostponeEnabled] = useState(true);
+  // AI 任务弹窗状态
+  const [showAiTasks, setShowAiTasks] = useState(false);
+  const [aiTasks, setAiTasks] = useState<any[]>([]);
 
   // 使用 ref 存储计时器状态，避免闭包问题
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -162,6 +168,23 @@ export default function BreakPage() {
         timerRef.current = null;
       }
     };
+
+    // 加载 AI 任务
+    const loadAiTasks = async () => {
+      try {
+        if (window.electronAPI?.getTasks) {
+          const allTasks = await window.electronAPI.getTasks();
+          const aiTaskList = (allTasks || []).filter((t: any) => t.taskType === 'ai' && t.status === 'active');
+          setAiTasks(aiTaskList);
+          if (aiTaskList.length > 0) {
+            setShowAiTasks(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load AI tasks:', error);
+      }
+    };
+    loadAiTasks();
   }, []);
 
   // 格式化快捷键显示
@@ -207,19 +230,80 @@ export default function BreakPage() {
     }
   }, [canPostpone, postponeCount, postponeLimit]);
 
+  const handleToggleAiTask = async (taskId: string) => {
+    const task = aiTasks.find(t => t.id === taskId);
+    if (!task) return;
+    const newStatus = task.status === 'completed' ? 'active' : 'completed';
+    await window.electronAPI.updateTask({ ...task, status: newStatus });
+    setAiTasks(aiTasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+  };
+
+  const handleConfirmAiTasks = () => {
+    setShowAiTasks(false);
+    handleComplete();
+  };
+
+  // 排序 AI 任务：运行中 > 未发起 > 已完成（不显示）
+  const sortedAiTasks = aiTasks
+    .filter(t => t.status !== 'completed')
+    .sort((a, b) => {
+      if (a.completedPomodoros > 0 && b.completedPomodoros === 0) return -1;
+      if (a.completedPomodoros === 0 && b.completedPomodoros > 0) return 1;
+      return 0;
+    });
+
   return (
-    <BreakOverlay
-      type={breakType}
-      timeRemaining={timeRemaining}
-      totalTime={totalTime}
-      onComplete={handleComplete}
-      onPostpone={postponeEnabled ? handlePostpone : undefined}
-      canPostpone={canPostpone && postponeEnabled}
-      postponeCount={postponeCount}
-      postponeLimit={postponeLimit}
-      strictMode={strictMode}
-      endBreakShortcut={endBreakShortcut}
-      postponeShortcut={postponeShortcut}
-    />
+    <>
+      <BreakOverlay
+        type={breakType}
+        timeRemaining={timeRemaining}
+        totalTime={totalTime}
+        onComplete={showAiTasks && sortedAiTasks.length > 0 ? () => {} : handleComplete}
+        onPostpone={postponeEnabled && !showAiTasks ? handlePostpone : undefined}
+        canPostpone={canPostpone && postponeEnabled && !showAiTasks}
+        postponeCount={postponeCount}
+        postponeLimit={postponeLimit}
+        strictMode={strictMode && !showAiTasks}
+        endBreakShortcut={endBreakShortcut}
+        postponeShortcut={postponeShortcut}
+      />
+      {showAiTasks && sortedAiTasks.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Bot className="w-6 h-6 text-purple-500" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {t('break.breakPage.checkAiTasks')}
+              </h2>
+            </div>
+            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+              {sortedAiTasks.map(task => (
+                <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <button onClick={() => handleToggleAiTask(task.id)}>
+                    {task.status === 'completed' ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-gray-300" />
+                    )}
+                  </button>
+                  <span className={`flex-1 ${task.status === 'completed' ? 'line-through text-gray-400' : ''}`}>
+                    {task.title}
+                  </span>
+                  {task.completedPomodoros > 0 && task.status !== 'completed' && (
+                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-600 rounded">{t('break.breakPage.running')}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleConfirmAiTasks}
+              className="w-full py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+            >
+              {t('break.breakPage.confirmStartFocus')}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

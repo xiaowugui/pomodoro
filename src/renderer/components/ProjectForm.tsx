@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores';
 import { Project } from '@shared/types';
 
@@ -21,6 +22,7 @@ export default function ProjectForm({
   onSubmit, 
   onCancel 
 }: ProjectFormProps) {
+  const { t } = useTranslation();
   const { createProject, updateProject } = useAppStore();
   const [name, setName] = useState(project?.name || '');
   const [color, setColor] = useState(project?.color || PRESET_COLORS[0]);
@@ -72,7 +74,7 @@ export default function ProjectForm({
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {project ? '编辑项目' : '新建项目'}
+            {project ? t('projects.editProject') : t('projects.newProject')}
           </h2>
           <button
             onClick={onCancel}
@@ -85,21 +87,21 @@ export default function ProjectForm({
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              项目名称
+              {t('projects.projectName')}
             </label>
             <input
               ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="输入项目名称..."
+              placeholder={t('projects.enterProjectName')}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              项目颜色
+              {t('projects.projectColor')}
             </label>
             <div className="grid grid-cols-10 gap-1">
               {PRESET_COLORS.map((c) => (
@@ -122,7 +124,7 @@ export default function ProjectForm({
               style={{ backgroundColor: color }}
             />
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              预览: {name || '项目名称'}
+              {t('projects.preview')}: {name || t('projects.projectName')}
             </span>
           </div>
           
@@ -132,14 +134,14 @@ export default function ProjectForm({
               onClick={onCancel}
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              取消
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={!name.trim() || isSubmitting}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isSubmitting ? '保存中...' : project ? '保存' : '创建'}
+              {isSubmitting ? t('common.saving') : project ? t('common.save') : t('common.create')}
             </button>
           </div>
         </form>

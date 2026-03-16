@@ -36,7 +36,7 @@ export class MainWindowManager {
         preload: path.join(__dirname, '../preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: true,
+        sandbox: false,
       },
       show: false,
       titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -67,6 +67,15 @@ export class MainWindowManager {
     } else {
       this.window.loadFile(path.join(__dirname, '../../renderer/index.html'));
     }
+
+    // Log any loading errors
+    this.window.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      console.error('Failed to load:', errorCode, errorDescription);
+    });
+
+    this.window.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      console.log('Console:', message);
+    });
 
     return this.window;
   }

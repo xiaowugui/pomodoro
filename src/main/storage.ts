@@ -10,6 +10,7 @@ import {
   TaskLink,
   AppState,
   defaultSettings,
+  IdleLog,
 } from '../shared/types';
 
 import {
@@ -22,6 +23,7 @@ import {
   LogsStorage,
   ExecutionsStorage,
   NotesStorage,
+  IdleLogsStorage,
 } from './storage/index';
 
 /**
@@ -40,6 +42,7 @@ export class StorageManager {
   private logsStorage: LogsStorage;
   private executionsStorage: ExecutionsStorage;
   private notesStorage: NotesStorage;
+  private idleLogsStorage: IdleLogsStorage;
 
   constructor() {
     this.dataDir = app.getPath('userData');
@@ -61,6 +64,7 @@ export class StorageManager {
     this.logsStorage = new LogsStorage(this.dataDir);
     this.executionsStorage = new ExecutionsStorage(this.dataDir);
     this.notesStorage = new NotesStorage(this.dataDir);
+    this.idleLogsStorage = new IdleLogsStorage(this.dataDir);
   }
 
   async initialize(): Promise<void> {
@@ -75,6 +79,7 @@ export class StorageManager {
       this.logsStorage.initialize(),
       this.executionsStorage.initialize(),
       this.notesStorage.initialize(),
+      this.idleLogsStorage.initialize(),
     ]);
   }
 
@@ -285,6 +290,27 @@ export class StorageManager {
     return this.executionsStorage.getByDateRange(startDate, endDate);
   }
 
+  // ===== Idle Logs =====
+  getIdleLogs(): IdleLog[] {
+    return this.idleLogsStorage.getItems() as IdleLog[];
+  }
+
+  getIdleLogsByTask(taskId: string): IdleLog[] {
+    return this.idleLogsStorage.getByTask(taskId);
+  }
+
+  getIdleLogsByDateRange(startDate: string, endDate: string): IdleLog[] {
+    return this.idleLogsStorage.getByDateRange(startDate, endDate);
+  }
+
+  createIdleLog(idleLog: Omit<IdleLog, 'id'>): IdleLog {
+    return this.idleLogsStorage.create(idleLog);
+  }
+
+  deleteIdleLog(id: string): boolean {
+    return this.idleLogsStorage.delete(id);
+  }
+
   // ===== Statistics =====
   getStats(): {
     totalPomodoros: number;
@@ -342,7 +368,7 @@ export class StorageManager {
       logs: this.logsStorage.getItems() as PomodoroLog[],
       dayExecutions: this.executionsStorage.getItems() as TaskDayExecution[],
       taskNotes: this.notesStorage.getItems() as TaskNote[],
-      idleLogs: [],
+      idleLogs: this.idleLogsStorage.getItems() as IdleLog[],
     };
   }
 
@@ -413,6 +439,14 @@ export class StorageManager {
       const existing = this.notesStorage.getById(note.id);
       if (existing) {
         this.notesStorage.update(note);
+      }
+    }
+
+    // Import idle logs
+    for (const idleLog of data.idleLogs || []) {
+      const existing = this.idleLogsStorage.getById(idleLog.id);
+      if (!existing) {
+        this.idleLogsStorage.create(idleLog);
       }
     }
   }

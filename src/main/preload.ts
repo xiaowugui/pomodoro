@@ -57,6 +57,15 @@ const IPC_CHANNELS = {
   // 休息窗口
   BREAK_WINDOW_ACTION: 'break-window-action',
   BREAK_WINDOW_CLOSED: 'break-window-closed',
+
+  // Idle logs
+  GET_IDLE_LOGS: 'get-idle-logs',
+  GET_IDLE_LOGS_BY_TASK: 'get-idle-logs-by-task',
+  GET_IDLE_LOGS_BY_DATE: 'get-idle-logs-by-date',
+  CREATE_IDLE_LOG: 'create-idle-log',
+  DELETE_IDLE_LOG: 'delete-idle-log',
+  SHOW_IDLE_ALERT: 'show-idle-alert',
+  IDLE_ALERT_RESPONSE: 'idle-alert-response',
 } as const
 
 // 暴露安全的 API 给渲染进程
@@ -169,6 +178,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 页面内容读取
   getPageText: () => ipcRenderer.invoke(IPC_CHANNELS.GET_PAGE_TEXT),
+
+  // Idle logs
+  getIdleLogs: () => ipcRenderer.invoke(IPC_CHANNELS.GET_IDLE_LOGS),
+  getIdleLogsByTask: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_IDLE_LOGS_BY_TASK, taskId),
+  getIdleLogsByDate: (startDate: string, endDate: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_IDLE_LOGS_BY_DATE, startDate, endDate),
+
+  // Idle alert
+  onIdleAlert: (callback: (data: { taskId: string | null; reason: string }) => void) => {
+    ipcRenderer.on(IPC_CHANNELS.SHOW_IDLE_ALERT, (_, data) => callback(data))
+  },
+  idleAlertResponse: (response: 'continue' | 'stop') => ipcRenderer.invoke(IPC_CHANNELS.IDLE_ALERT_RESPONSE, response),
 
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel)

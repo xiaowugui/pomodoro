@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useThemeStore } from './stores/themeStore'
 import { useAppStore } from './stores/appStore'
+import { useSettingsStore } from './stores/settingsStore'
 import TimerPage from './pages/TimerPage'
 import TasksPage from './pages/TasksPage'
 import StatsPage from './pages/StatsPage'
@@ -14,15 +16,25 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const { initialize } = useThemeStore()
   const { loadAllData } = useAppStore()
+  const settings = useSettingsStore()
+  const { loadSettings } = useSettingsStore()
+  const { i18n } = useTranslation()
+
+  useEffect(() => {
+    if (settings.language) {
+      i18n.changeLanguage(settings.language)
+    }
+  }, [settings.language, i18n])
 
   useEffect(() => {
     const init = async () => {
       await loadAllData()
+      await loadSettings()
       await initialize()
       setIsLoading(false)
     }
     init()
-  }, [loadAllData, initialize])
+  }, [loadAllData, loadSettings, initialize])
 
   if (isLoading) {
     return (

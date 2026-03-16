@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
-import { Plus, AlertCircle, Clock, Clock9, Square, Check, Target } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Plus, AlertCircle, Clock, Clock9, Square, Check, Target, Bot } from 'lucide-react';
 import { useAppStore, useTimerStore } from '../stores';
-import type { Task } from '@shared/types';
+import type { Task, TaskType } from '@shared/types';
+
+const getTaskTypeInfo = (taskType: TaskType) => {
+  if (taskType === 'ai') {
+    return { label: 'AI', badge: 'bg-purple-500 text-white', icon: Bot };
+  }
+  return null;
+};
 
 interface TaskSelectorProps {
   onCreateTask?: () => void;
@@ -31,7 +39,7 @@ const getPriorityInfo = (task: Task) => {
   
   if (isImportant && isUrgent) {
     return { 
-      label: '紧急重要', 
+      labelKey: 'tasks.quadrant.importantUrgent', 
       color: 'border-l-red-500 bg-red-50 dark:bg-red-900/20',
       badge: 'bg-red-500 text-white',
       icon: AlertCircle,
@@ -39,7 +47,7 @@ const getPriorityInfo = (task: Task) => {
     };
   } else if (isImportant && !isUrgent) {
     return { 
-      label: '重要', 
+      labelKey: 'tasks.quadrant.important', 
       color: 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20',
       badge: 'bg-blue-500 text-white',
       icon: Clock9,
@@ -47,7 +55,7 @@ const getPriorityInfo = (task: Task) => {
     };
   } else if (!isImportant && isUrgent) {
     return { 
-      label: '紧急', 
+      labelKey: 'tasks.quadrant.urgent', 
       color: 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20',
       badge: 'bg-yellow-500 text-white',
       icon: Clock,
@@ -55,7 +63,7 @@ const getPriorityInfo = (task: Task) => {
     };
   }
   return { 
-    label: '普通', 
+    labelKey: 'tasks.quadrant.normal', 
     color: 'border-l-gray-300 bg-gray-50 dark:bg-gray-800',
     badge: 'bg-gray-400 text-white',
     icon: Square,
@@ -64,6 +72,7 @@ const getPriorityInfo = (task: Task) => {
 };
 
 export default function TaskSelector({ onCreateTask, disabled = false }: TaskSelectorProps) {
+  const { t } = useTranslation();
   const { tasks, projects, getTodayPlannedTasks } = useAppStore();
   const { currentTaskId, setCurrentTask } = useTimerStore();
   const [showAllTasks, setShowAllTasks] = useState(false);
@@ -72,10 +81,10 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
   const todayPlannedTasks = getTodayPlannedTasks();
   const hasTodayPlannedTasks = todayPlannedTasks.length > 0;
   
-  // 获取活跃任务并按优先级排序
+  // 获取活跃任务并按优先级排序（过滤掉 AI 任务，AI 任务不参与番茄钟计时）
   const sortedTasks = useMemo(() => {
-    // If there are planned tasks for today, show only those; otherwise show all active tasks
-    const baseTasks = hasTodayPlannedTasks ? todayPlannedTasks : tasks.filter((t) => t.status === 'active');
+    let baseTasks = hasTodayPlannedTasks ? todayPlannedTasks : tasks.filter((t) => t.status === 'active');
+    baseTasks = baseTasks.filter((t) => t.taskType !== 'ai');
     return baseTasks.sort((a, b) => getPriorityScore(b) - getPriorityScore(a));
   }, [tasks, todayPlannedTasks, hasTodayPlannedTasks]);
   
@@ -101,7 +110,7 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
   
   const getProjectName = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
-    return project?.name || '无项目';
+    return project?.name || t('tasks.noProject');
   };
   
   const handleSelect = (taskId: string | null) => {
@@ -117,7 +126,7 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
             <div className="flex items-center gap-3 overflow-hidden">
               <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="text-sm text-gray-500 dark:text-gray-400">当前任务</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('tasks.currentTask')}</span>
                 <p className="font-medium text-gray-900 dark:text-white truncate">{selectedTask.title}</p>
               </div>
             </div>
@@ -125,13 +134,13 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
               onClick={() => handleSelect(null)}
               className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             >
-              取消选择
+              {t('tasks.deselect')}
             </button>
           </div>
         </div>
       ) : (
         <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-500 dark:text-gray-400 text-center">请选择下方任务开始专注</p>
+          <p className="text-gray-500 dark:text-gray-400 text-center">{t('tasks.selectTaskToStart')}</p>
         </div>
       )}
       
@@ -140,8 +149,8 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {showAllTasks 
-              ? (hasTodayPlannedTasks ? '今日计划（按优先级排序）' : '全部任务（按优先级排序）') 
-              : (hasTodayPlannedTasks ? '今日计划（紧急优先）' : '推荐任务（紧急优先）')}
+              ? (hasTodayPlannedTasks ? t('tasks.todayPlannedSorted') : t('tasks.allTasksSorted')) 
+              : (hasTodayPlannedTasks ? t('tasks.todayPlannedUrgent') : t('tasks.recommendedTasksUrgent'))}
             {hasTodayPlannedTasks && <Target className="w-4 h-4 inline ml-1 text-red-500" />}
           </h3>
           {sortedTasks.length > 3 && (
@@ -149,20 +158,21 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
               onClick={() => setShowAllTasks(!showAllTasks)}
               className="text-sm text-red-500 hover:text-red-600"
             >
-              {showAllTasks ? '收起' : `显示全部 (${sortedTasks.length})`}
+              {showAllTasks ? t('tasks.collapse') : t('tasks.showAll', { count: sortedTasks.length })}
             </button>
           )}
         </div>
         
         {displayTasks.length === 0 ? (
           <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-            {hasTodayPlannedTasks ? '今日暂无计划任务' : '暂无活跃任务'}
+            {hasTodayPlannedTasks ? t('tasks.noPlannedTasksToday') : t('tasks.noTasks')}
           </div>
         ) : (
           displayTasks.map((task) => {
             const priority = getPriorityInfo(task);
             const Icon = priority.icon;
             const isSelected = task.id === currentTaskId;
+            const taskTypeInfo = getTaskTypeInfo(task.taskType || 'normal');
             
             return (
               <button
@@ -183,20 +193,27 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
                   />
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`font-medium truncate ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                         {task.title}
                       </span>
+                      {/* 任务类型标签 */}
+                      {taskTypeInfo && (
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${taskTypeInfo.badge} flex-shrink-0`}>
+                          <taskTypeInfo.icon className="w-3 h-3" />
+                          {taskTypeInfo.label}
+                        </span>
+                      )}
                       {/* 优先级标签 */}
                       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${priority.badge} flex-shrink-0`}>
                         <Icon className="w-3 h-3" />
-                        {priority.label}
+                        {t(priority.labelKey)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
                       <span>{getProjectName(task.projectId)}</span>
                       <span>•</span>
-                      <span>番茄 {task.completedPomodoros}/{task.estimatedPomodoros}</span>
+                      <span>{t('tasks.pomodoroProgress', { completed: task.completedPomodoros, estimated: task.estimatedPomodoros })}</span>
                     </div>
                   </div>
                   
@@ -222,23 +239,23 @@ export default function TaskSelector({ onCreateTask, disabled = false }: TaskSel
             className="w-full p-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-red-500 hover:text-red-500 transition-colors flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            <span>新建任务</span>
+            <span>{t('tasks.newTask')}</span>
           </button>
         )}
       </div>
       
       {/* 优先级说明 */}
       <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">优先级说明：</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t('tasks.priorityExplanation')}</p>
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">
-            <AlertCircle className="w-3 h-3" /> 紧急重要 - 立即执行
+            <AlertCircle className="w-3 h-3" /> {t('tasks.priorityImportantUrgentDesc')}
           </span>
           <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-            <Clock9 className="w-3 h-3" /> 重要 - 计划执行
+            <Clock9 className="w-3 h-3" /> {t('tasks.priorityImportantDesc')}
           </span>
           <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded">
-            <Clock className="w-3 h-3" /> 紧急 - 委托他人
+            <Clock className="w-3 h-3" /> {t('tasks.priorityUrgentDesc')}
           </span>
         </div>
       </div>

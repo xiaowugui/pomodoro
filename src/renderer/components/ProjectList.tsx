@@ -1,5 +1,6 @@
 import { Folder, MoreVertical, Plus, Trash2, Edit2, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../stores';
 import { Project } from '@shared/types';
 
@@ -20,6 +21,7 @@ export default function ProjectList({
   filter = 'all',
   onFilterChange
 }: ProjectListProps) {
+  const { t } = useTranslation();
   const { projects, tasks, deleteProject, completeProject } = useAppStore();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   
@@ -43,14 +45,14 @@ export default function ProjectList({
   };
   
   const handleDelete = async (projectId: string) => {
-    if (confirm('确定要删除这个项目吗？相关任务也会被删除。')) {
+    if (confirm(t('projects.confirmDelete'))) {
       await deleteProject(projectId);
     }
     setMenuOpenId(null);
   };
   
   const handleComplete = async (projectId: string) => {
-    if (confirm('确定要完成这个项目吗？这将标记项目及其所有任务为已完成。')) {
+    if (confirm(t('projects.confirmComplete'))) {
       // Complete all tasks in the project first
       const projectTasks = tasks.filter(t => t.projectId === projectId && t.status === 'active');
       for (const task of projectTasks) {
@@ -66,18 +68,18 @@ export default function ProjectList({
     <div className="space-y-2">
       {/* Filter buttons */}
       {onFilterChange && (
-        <div className="flex items-center gap-1 mb-4">
+        <div className="flex items-center gap-1 mb-4 whitespace-nowrap">
           {(['active', 'completed', 'all'] as const).map((f) => (
             <button
               key={f}
               onClick={() => onFilterChange(f)}
-              className={`px-2 py-1 text-xs rounded-full transition-colors ${
+              className={`px-2 py-1 text-xs rounded-full transition-colors whitespace-nowrap ${
                 filter === f
                   ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                   : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              {f === 'active' ? '未完成' : f === 'completed' ? '已完成' : '全部'}
+              {f === 'active' ? t('projects.status.active') : f === 'completed' ? t('projects.status.completed') : t('projects.status.all')}
             </button>
           ))}
         </div>
@@ -85,7 +87,7 @@ export default function ProjectList({
       
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          项目
+          {t('projects.title')}
         </h3>
         {onCreate && (
           <button
@@ -107,7 +109,7 @@ export default function ProjectList({
           }`}
         >
           <Folder className="w-5 h-5" />
-          <span className="flex-1 text-left">全部任务</span>
+          <span className="flex-1 text-left">{t('projects.allTasks')}</span>
           <span className="text-xs text-gray-400">
             {filter === 'active' 
               ? tasks.filter((t) => t.status === 'active').length 
@@ -163,7 +165,7 @@ export default function ProjectList({
                       className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-t-lg"
                     >
                       <CheckCircle className="w-4 h-4" />
-                      完成项目
+                      {t('projects.complete')}
                     </button>
                   )}
                   {onEdit && (
@@ -175,7 +177,7 @@ export default function ProjectList({
                       className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <Edit2 className="w-4 h-4" />
-                      编辑
+                      {t('common.edit')}
                     </button>
                   )}
                   <button
@@ -183,7 +185,7 @@ export default function ProjectList({
                     className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-lg"
                   >
                     <Trash2 className="w-4 h-4" />
-                    删除
+                    {t('common.delete')}
                   </button>
                 </div>
               )}
@@ -194,7 +196,7 @@ export default function ProjectList({
       
       {filteredProjects.length === 0 && (
         <div className="text-center py-4 text-gray-400 dark:text-gray-500 text-sm">
-          暂无项目
+          {t('projects.noProjects')}
         </div>
       )}
     </div>

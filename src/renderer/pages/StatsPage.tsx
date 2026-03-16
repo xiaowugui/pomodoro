@@ -3,12 +3,14 @@ import { Clock, Target, CheckCircle, Flame, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../stores';
 import { exportToCSV as exportDataToCSV } from '../utils/export';
+import { useTranslation } from 'react-i18next';
 
 export default function StatsPage() {
   const [chartType, setChartType] = useState<'daily' | 'projects' | 'trend'>('daily');
   const [timeRange, setTimeRange] = useState(7);
   const [loading, setLoading] = useState(true);
   const { projects, tasks, logs } = useAppStore();
+  const { t } = useTranslation();
 
   useEffect(() => {
     setLoading(true);
@@ -41,7 +43,7 @@ export default function StatsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            统计数据
+            {t('stats.title')}
           </h1>
           <div className="flex items-center gap-2">
             <button
@@ -49,7 +51,7 @@ export default function StatsPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
             >
               <Download className="w-4 h-4" />
-              导出CSV
+              {t('stats.exportCSV')}
             </button>
           </div>
         </div>
@@ -62,7 +64,7 @@ export default function StatsPage() {
                 <Clock className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">完成番茄钟</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('stats.completedPomodoros')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.totalPomodoros}
                 </p>
@@ -76,9 +78,9 @@ export default function StatsPage() {
                 <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">专注时长</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('stats.focusTime')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.totalWorkMinutes}分钟
+                  {t('stats.focusMinutes', { minutes: stats.totalWorkMinutes })}
                 </p>
               </div>
             </div>
@@ -90,7 +92,7 @@ export default function StatsPage() {
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">完成任务</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('stats.completedTasks')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.completedTasks}
                 </p>
@@ -104,9 +106,9 @@ export default function StatsPage() {
                 <Flame className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">连续天数</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('stats.streakDays')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.streakDays} 天
+                  {t('stats.days', { days: stats.streakDays })}
                 </p>
               </div>
             </div>
@@ -123,7 +125,7 @@ export default function StatsPage() {
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >
-            每日统计
+            {t('stats.daily')}
           </button>
           <button
             onClick={() => setChartType('projects')}
@@ -133,7 +135,7 @@ export default function StatsPage() {
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >
-            项目分布
+            {t('stats.projects')}
           </button>
           <button
             onClick={() => setChartType('trend')}
@@ -143,16 +145,16 @@ export default function StatsPage() {
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >
-            趋势分析
+            {t('stats.trend')}
           </button>
         </div>
 
         {/* Chart */}
         <div className="p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            {chartType === 'daily' && '每日番茄钟统计'}
-            {chartType === 'projects' && '项目分布统计'}
-            {chartType === 'trend' && '12周趋势分析'}
+            {chartType === 'daily' && t('stats.dailyPomodoroStats')}
+            {chartType === 'projects' && t('stats.projectDistributionStats')}
+            {chartType === 'trend' && t('stats.twelveWeekTrend')}
           </h2>
           <StatsChart type={chartType} days={timeRange} />
         </div>

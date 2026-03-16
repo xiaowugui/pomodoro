@@ -34,7 +34,7 @@ export default function TimerDisplay({ size = 'lg' }: TimerDisplayProps) {
   
   return (
     <div className={`relative ${classes.container} flex items-center justify-center`}>
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 260 260">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 260 260" aria-hidden="true">
         <circle
           cx="130"
           cy="130"

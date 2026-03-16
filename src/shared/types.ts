@@ -124,6 +124,7 @@ export interface Settings {
   // 外观
   theme: 'light' | 'dark' | 'system';
   accentColor: string;
+  language: 'zh' | 'en';
   
   // 快捷键
   shortcuts: {
@@ -181,6 +182,7 @@ export const defaultSettings: Settings = {
   
   theme: 'system',
   accentColor: '#ef4444',
+  language: 'zh',
   shortcuts: {
     toggleTimer: 'CommandOrControl+Shift+P',
     skipPhase: 'CommandOrControl+Shift+S',

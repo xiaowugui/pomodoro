@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import BreakPage from './pages/BreakPage'
+import './i18n'
 import './styles.css'
 
 // 确保body有正确的样式

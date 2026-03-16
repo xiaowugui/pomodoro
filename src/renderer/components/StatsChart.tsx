@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   BarChart, 
   Bar, 
@@ -37,6 +38,7 @@ const DEFAULT_COLORS = [
 ];
 
 export default function StatsChart({ type, days = 7 }: StatsChartProps) {
+  const { t } = useTranslation();
   const { logs, projects, tasks } = useAppStore();
   const [error, setError] = useState<string | null>(null);
   
@@ -136,7 +138,7 @@ export default function StatsChart({ type, days = 7 }: StatsChartProps) {
           return [];
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '数据计算错误');
+      setError(err instanceof Error ? err.message : t('stats.dataError'));
       return [];
     }
   }, [logs, projects, tasks, type, days]);
@@ -144,7 +146,7 @@ export default function StatsChart({ type, days = 7 }: StatsChartProps) {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64 text-red-500 dark:text-red-400">
-        图表加载错误: {error}
+        {t('stats.chartError')}: {error}
       </div>
     );
   }
@@ -152,7 +154,7 @@ export default function StatsChart({ type, days = 7 }: StatsChartProps) {
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500">
-        暂无数据
+        {t('stats.noData')}
       </div>
     );
   }
@@ -218,7 +220,7 @@ export default function StatsChart({ type, days = 7 }: StatsChartProps) {
                   color: '#fff',
                 }}
                 formatter={(value: number, name: string, props: any) => [
-                  `${value} 个番茄钟 (${props.payload.minutes} 分钟)`,
+                  t('stats.pomodoroCount', { count: value }) + ` (${props.payload.minutes} ${t('daily.minute')})`,
                   name,
                 ]}
               />

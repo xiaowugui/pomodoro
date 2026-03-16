@@ -8,7 +8,8 @@ import { TrayManager } from './tray';
 import { ShortcutsManager } from './shortcuts';
 import { TimerManager } from './timer';
 import { MailWatcher, MailWatcherConfig } from './mail-watcher';
-import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, TaskDayExecution, TaskNote, TaskLink, defaultSettings } from '../shared/types';
+import { IdleDetector } from './idle-detector';
+import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, TaskDayExecution, TaskNote, TaskLink, IdleLog, defaultSettings } from '../shared/types';
 
 /**
  * PomodoroApp - 主应用类
@@ -23,6 +24,8 @@ class PomodoroApp {
   private shortcuts: ShortcutsManager;
   private timer: TimerManager;
   private mailWatcher: MailWatcher;
+  private idleDetector: IdleDetector;
+  // 防止休息结束通知重复发送
   private isBreakCompleting: boolean = false;
   private isTaskReviewDismissed: boolean = false;
 
@@ -35,9 +38,12 @@ class PomodoroApp {
     this.shortcuts = new ShortcutsManager();
     this.timer = new TimerManager(this.storage);
     this.mailWatcher = new MailWatcher();
+    this.idleDetector = new IdleDetector(this.storage);
     
     // 设置breakWindows引用用于事件传递
     this.timer.setBreakWindowsManager(this.breakWindows as any);
+    // 设置 storage 的 timer 引用供 idleDetector 使用
+    (this.storage as any).timer = this.timer;
     
     // 设置休息完成回调 - 当休息窗口自动关闭时通知计时器
     this.breakWindows.setOnBreakComplete(() => {
@@ -490,6 +496,36 @@ class PomodoroApp {
         return { success: false, error: String(error) };
       }
     });
+
+    // Idle Logs
+    ipcMain.handle(IPC_CHANNELS.GET_IDLE_LOGS, () => {
+      return this.storage.getIdleLogs();
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_IDLE_LOGS_BY_TASK, (_, taskId: string) => {
+      return this.storage.getIdleLogsByTask(taskId);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_IDLE_LOGS_BY_DATE, (_, startDate: string, endDate: string) => {
+      return this.storage.getIdleLogsByDateRange(startDate, endDate);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.CREATE_IDLE_LOG, (_, idleLog: Omit<IdleLog, 'id'>) => {
+      return this.storage.createIdleLog(idleLog);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.DELETE_IDLE_LOG, (_, id: string) => {
+      return this.storage.deleteIdleLog(id);
+    });
+
+    // Idle Alert
+    ipcMain.handle(IPC_CHANNELS.IDLE_ALERT_RESPONSE, (_, response: 'continue' | 'stop') => {
+      if (response === 'continue') {
+        this.idleDetector.recordActivity();
+        this.timer.resume();
+      }
+      return true;
+    });
   }
 
   private setupTimerEvents(): void {
@@ -553,6 +589,47 @@ class PomodoroApp {
     // 推迟结束 - 通知主窗口
     this.timer.on('postpone-end', () => {
       this.mainWindow.webContents?.send(IPC_CHANNELS.TIMER_POSTPONE_END);
+    });
+
+    // 计时器启动时开始空闲检测
+    this.timer.on('start', () => {
+      const state = this.timer.getState();
+      if (state.phase === 'work') {
+        this.idleDetector.setCurrentTask(state.currentTaskId);
+        this.idleDetector.start();
+      }
+    });
+
+    // 计时器暂停时停止空闲检测
+    this.timer.on('pause', () => {
+      this.idleDetector.stop();
+    });
+
+    // 计时器停止时停止空闲检测
+    this.timer.on('stop', () => {
+      this.idleDetector.stop();
+    });
+
+    // 阶段变更时更新空闲检测
+    this.timer.on('phase-change', (phase) => {
+      if (phase === 'work' && this.timer.isRunning()) {
+        const state = this.timer.getState();
+        this.idleDetector.setCurrentTask(state.currentTaskId);
+        this.idleDetector.start();
+      } else {
+        this.idleDetector.stop();
+      }
+    });
+
+    // 空闲检测事件
+    this.idleDetector.on('idle-detected', (taskId, reason) => {
+      if (reason === 'idle') {
+        this.mainWindow.webContents?.send(IPC_CHANNELS.SHOW_IDLE_ALERT, { taskId, reason });
+      }
+    });
+
+    this.idleDetector.on('user-active', () => {
+      this.mainWindow.webContents?.send('user-active');
     });
   }
 

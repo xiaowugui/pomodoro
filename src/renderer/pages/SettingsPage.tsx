@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { Layout, SettingsForm } from '../components';
 import { useSettingsStore } from '../stores';
+import { useTranslation } from 'react-i18next';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { loadSettings, initializeListeners } = useSettingsStore();
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export default function SettingsPage() {
     <Layout>
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-          设置
+          {t('settings.title')}
         </h1>
         
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">

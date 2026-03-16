@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, Clock, Trash2, Edit2, Play, MoreVertical, AlertCircle, Clock9, Bot, Zap, FileText } from 'lucide-react';
 import { useAppStore } from '../stores';
 import { Task, TaskType } from '@shared/types';
@@ -25,6 +26,7 @@ export default function TaskList({
   const { tasks: allTasks, projects, completeTask, deleteTask } = useAppStore();
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'all' | TaskType>('all');
+  const { t } = useTranslation();
   
   const tasks = propTasks || allTasks;
   
@@ -46,17 +48,17 @@ export default function TaskList({
   
   const getProjectName = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
-    return project?.name || '无项目';
+    return project?.name || t('tasks.noProject');
   };
   
   // 获取任务类型信息
   const getTaskTypeInfo = (task: Task): { label: string; color: string; icon: typeof Bot } | null => {
     const taskType = task.taskType || 'normal';
     if (taskType === 'ai') {
-      return { label: 'AI', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', icon: Bot };
+      return { label: t('tasks.ai'), color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', icon: Bot };
     }
     if (taskType === 'normal') {
-      return { label: '普通', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', icon: FileText };
+      return { label: t('tasks.normal'), color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', icon: FileText };
     }
     return null;
   };
@@ -67,11 +69,11 @@ export default function TaskList({
     const isUrgent = task.isUrgent ?? false;
     
     if (isImportant && isUrgent) {
-      return { label: '紧急重要', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: AlertCircle };
+      return { label: t('tasks.quadrant.importantUrgent'), color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', icon: AlertCircle };
     } else if (isImportant && !isUrgent) {
-      return { label: '重要', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: Clock9 };
+      return { label: t('tasks.quadrant.important'), color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: Clock9 };
     } else if (!isImportant && isUrgent) {
-      return { label: '紧急', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300', icon: AlertCircle };
+      return { label: t('tasks.quadrant.urgent'), color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300', icon: AlertCircle };
     }
     return null;
   };
@@ -81,7 +83,7 @@ export default function TaskList({
   };
   
   const handleDelete = async (taskId: string) => {
-    if (confirm('确定要删除这个任务吗？')) {
+    if (confirm(t('tasks.confirmDelete'))) {
       await deleteTask(taskId);
     }
     setMenuOpenId(null);
@@ -91,7 +93,7 @@ export default function TaskList({
     <div className="space-y-4">
       {showFilters && !externalFilter && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             {(['all', 'active', 'completed'] as const).map((f) => (
               <button
                 key={f}
@@ -99,29 +101,29 @@ export default function TaskList({
                   // This branch won't be reached when externalFilter is provided
                   // But we need a valid handler
                 }}
-                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors whitespace-nowrap ${
                   effectiveFilter === f
                     ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
-                {f === 'all' ? '全部' : f === 'active' ? '进行中' : '已完成'}
+                {f === 'all' ? t('tasks.all') : f === 'active' ? t('tasks.active') : t('tasks.completed')}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">类型:</span>
-            {(['all', 'ai', 'normal'] as const).map((t) => (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('tasks.normal')}:</span>
+            {(['all', 'ai', 'normal'] as const).map((taskType) => (
               <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
+                key={taskType}
+                onClick={() => setTypeFilter(taskType)}
                 className={`px-2 py-1 text-xs rounded-full transition-colors ${
-                  typeFilter === t
+                  typeFilter === taskType
                     ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
                     : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
-                {t === 'all' ? '全部' : t === 'ai' ? 'AI任务' : '普通'}
+                {taskType === 'all' ? t('tasks.all') : taskType === 'ai' ? t('tasks.ai') : t('tasks.normal')}
               </button>
             ))}
           </div>
@@ -215,7 +217,7 @@ export default function TaskList({
                         className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-lg"
                       >
                         <Play className="w-4 h-4" />
-                        开始专注
+                        {t('timer.start')}
                       </button>
                     )}
                     {onEdit && (
@@ -227,7 +229,7 @@ export default function TaskList({
                         className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         <Edit2 className="w-4 h-4" />
-                        编辑
+                        {t('common.edit')}
                       </button>
                     )}
                     <button
@@ -235,7 +237,7 @@ export default function TaskList({
                       className="w-full px-3 py-2 text-left flex items-center gap-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-b-lg"
                     >
                       <Trash2 className="w-4 h-4" />
-                      删除
+                      {t('common.delete')}
                     </button>
                   </div>
                 )}
@@ -246,7 +248,7 @@ export default function TaskList({
         
         {filteredTasks.length === 0 && (
           <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-            暂无任务
+            {t('tasks.noTasks')}
           </div>
         )}
       </div>

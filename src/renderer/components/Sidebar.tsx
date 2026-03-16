@@ -1,16 +1,19 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Timer, CheckSquare, Calendar, BarChart3, Settings, FileText } from 'lucide-react';
 
 const navItems = [
-  { path: '/timer', label: '专注', icon: Timer },
-  { path: '/daily', label: '按日', icon: Calendar },
-  { path: '/tasks', label: '任务', icon: CheckSquare },
-  { path: '/notes', label: '备注', icon: FileText },
-  { path: '/stats', label: '统计', icon: BarChart3 },
-  { path: '/settings', label: '设置', icon: Settings },
+  { path: '/timer', labelKey: 'app.timer', icon: Timer },
+  { path: '/daily', labelKey: 'app.daily', icon: Calendar },
+  { path: '/tasks', labelKey: 'app.tasks', icon: CheckSquare },
+  { path: '/notes', labelKey: 'app.notes', icon: FileText },
+  { path: '/stats', labelKey: 'app.stats', icon: BarChart3 },
+  { path: '/settings', labelKey: 'app.settings', icon: Settings },
 ];
 
 export default function Sidebar() {
+  const { t } = useTranslation();
+  
   return (
     <aside className="w-20 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col items-center py-6">
       <div className="mb-8">
@@ -33,7 +36,7 @@ export default function Sidebar() {
                     : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`
               }
-              title={item.label}
+              title={t(item.labelKey)}
             >
               <Icon className="w-6 h-6" />
             </NavLink>

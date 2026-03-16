@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Coffee, Sparkles, X, Clock, Zap } from 'lucide-react';
 
 interface BreakOverlayProps {
@@ -28,6 +29,7 @@ export default function BreakOverlay({
   endBreakShortcut = 'Ctrl+X',
   postponeShortcut = 'Ctrl+P',
 }: BreakOverlayProps) {
+  const { t } = useTranslation();
   const [isFullscreen, setIsFullscreen] = useState(true);
   
   // 检测屏幕尺寸
@@ -117,14 +119,14 @@ export default function BreakOverlay({
             margin: '0 0 8px 0',
             letterSpacing: '2px',
           }}>
-            {isShortBreak ? '短休息' : '长休息'}
+            {isShortBreak ? t('break.shortBreak') : t('break.longBreak')}
           </h1>
           <p style={{
             fontSize: isFullscreen ? '16px' : '13px',
             color: 'rgba(255,255,255,0.85)',
             margin: 0,
           }}>
-            {isShortBreak ? '让眼睛休息一下' : '好好休息，恢复精力'}
+            {isShortBreak ? t('break.restEyes') : t('break.restEnergy')}
           </p>
         </div>
         
@@ -192,7 +194,7 @@ export default function BreakOverlay({
               marginTop: '8px',
               fontWeight: 500,
             }}>
-              剩余时间
+              {t('break.timeRemaining')}
             </span>
           </div>
         </div>
@@ -212,7 +214,7 @@ export default function BreakOverlay({
             color: 'white',
             fontWeight: 600,
           }}>
-            {Math.round(progress)}% 已完成
+            {Math.round(progress)}% {t('break.completed')}
           </span>
         </div>
         
@@ -253,7 +255,7 @@ export default function BreakOverlay({
               }}
             >
               <Zap size={20} />
-              推迟休息 ({postponeShortcut})
+              {t('break.postponeBreak', { shortcut: postponeShortcut })}
             </button>
           )}
           
@@ -293,7 +295,7 @@ export default function BreakOverlay({
             }}
           >
             <X size={20} />
-            {strictMode ? '休息期间无法跳过' : `跳过休息 (${endBreakShortcut})`}
+            {strictMode ? t('break.cannotSkipDuringBreak') : t('break.skipWithShortcut', { shortcut: endBreakShortcut })}
           </button>
         </div>
         
@@ -310,7 +312,7 @@ export default function BreakOverlay({
               fontSize: '13px',
               color: 'rgba(255,255,255,0.7)',
             }}>
-              还可推迟 {remainingPostpones} 次
+              {t('break.remainingPostpones', { count: remainingPostpones })}
             </span>
           )}
           {!strictMode && (
@@ -318,7 +320,7 @@ export default function BreakOverlay({
               fontSize: '12px',
               color: 'rgba(255,255,255,0.5)',
             }}>
-              快捷键: {endBreakShortcut} 跳过{canPostpone && remainingPostpones > 0 ? ` | ${postponeShortcut} 推迟` : ''}
+              {t('break.shortcut')}: {endBreakShortcut} {t('break.skipBreak')}{canPostpone && remainingPostpones > 0 ? ` | ${postponeShortcut} ${t('break.postpone')}` : ''}
             </span>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { Play, Pause, Square, CheckCircle, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useTimerStore, useAppStore } from '../stores';
 
 interface TimerControlsProps {
@@ -6,6 +7,7 @@ interface TimerControlsProps {
 }
 
 export default function TimerControls({ size = 'md' }: TimerControlsProps) {
+  const { t } = useTranslation();
   const { isRunning, phase, currentTaskId, start, pause, resume, stop, complete } = useTimerStore();
   const { completeTask, tasks } = useAppStore();
   
@@ -52,31 +54,31 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
         <>
           <button
             onClick={stop}
-            className={`${sizeClasses[size]} rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors`}
-            title="停止"
+            className={`${sizeClasses[size]} rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2`}
+            aria-label={t('timer.stop')}
           >
-            <Square className={iconSizes[size]} fill="currentColor" />
+            <Square className={iconSizes[size]} fill="currentColor" aria-hidden="true" />
           </button>
           
           <button
             onClick={complete}
-            className={`${sizeClasses[size]} rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors shadow-lg`}
-            title="完成"
+            className={`${sizeClasses[size]} rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors shadow-lg focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2`}
+            aria-label={t('timer.skip')}
           >
-            <CheckCircle className={iconSizes[size]} />
+            <CheckCircle className={iconSizes[size]} aria-hidden="true" />
           </button>
         </>
       )}
       
       <button
         onClick={handleMainAction}
-        className={`${sizeClasses[size]} rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg hover:shadow-xl`}
-        title={isRunning ? '暂停' : phase === 'idle' ? '开始' : '继续'}
+        className={`${sizeClasses[size]} rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg hover:shadow-xl focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2`}
+        aria-label={isRunning ? t('timer.pause') : phase === 'idle' ? t('timer.start') : t('timer.resume')}
       >
         {isRunning ? (
-          <Pause className={iconSizes[size]} fill="currentColor" />
+          <Pause className={iconSizes[size]} fill="currentColor" aria-hidden="true" />
         ) : (
-          <Play className={iconSizes[size]} fill="currentColor" />
+          <Play className={iconSizes[size]} fill="currentColor" aria-hidden="true" />
         )}
       </button>
 
@@ -84,10 +86,10 @@ export default function TimerControls({ size = 'md' }: TimerControlsProps) {
       {phase === 'idle' && currentTaskId && !isTaskCompleted && (
         <button
           onClick={handleCompleteTask}
-          className={`${sizeClasses[size]} rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg`}
-          title="完成任务"
+          className={`${sizeClasses[size]} rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2`}
+          aria-label={t('tasks.completedPomodoros')}
         >
-          <CheckCircle2 className={iconSizes[size]} />
+          <CheckCircle2 className={iconSizes[size]} aria-hidden="true" />
         </button>
       )}
       
