@@ -51,6 +51,9 @@ const IPC_CHANNELS = {
   TIMER_TICK: 'timer-tick',
   TIMER_COMPLETE: 'timer-complete',
 
+  // 页面内容读取
+  GET_PAGE_TEXT: 'get-page-text',
+
   // 休息窗口
   BREAK_WINDOW_ACTION: 'break-window-action',
   BREAK_WINDOW_CLOSED: 'break-window-closed',
@@ -156,6 +159,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 任务备注窗口
   openTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('open-task-note-window', taskId),
   closeTaskNoteWindow: (taskId: string) => ipcRenderer.invoke('close-task-note-window', taskId),
+
+  // 任务审核提醒
+  onTaskReviewReminder: (callback: (tasks: any[]) => void) => {
+    ipcRenderer.on('show-task-review-reminder', (_, tasks) => callback(tasks))
+  },
+  dismissTaskReviewReminder: () => ipcRenderer.invoke('dismiss-task-review-reminder'),
+  markTaskActive: (taskId: string) => ipcRenderer.invoke('mark-task-active', taskId),
+
+  // 页面内容读取
+  getPageText: () => ipcRenderer.invoke(IPC_CHANNELS.GET_PAGE_TEXT),
 
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel)

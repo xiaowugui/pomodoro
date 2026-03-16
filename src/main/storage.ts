@@ -342,6 +342,7 @@ export class StorageManager {
       logs: this.logsStorage.getItems() as PomodoroLog[],
       dayExecutions: this.executionsStorage.getItems() as TaskDayExecution[],
       taskNotes: this.notesStorage.getItems() as TaskNote[],
+      idleLogs: [],
     };
   }
 
@@ -385,6 +386,7 @@ export class StorageManager {
           plannedDates: task.plannedDates,
           isImportant: task.isImportant,
           isUrgent: task.isUrgent,
+          taskType: task.taskType || 'normal',
         });
       }
     }

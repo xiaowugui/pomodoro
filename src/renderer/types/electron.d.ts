@@ -73,6 +73,14 @@ export interface ElectronAPI {
   // 数据更新事件
   onDataUpdated: (callback: () => void) => void
 
+  // 任务审核提醒
+  onTaskReviewReminder: (callback: (tasks: any[]) => void) => void
+  dismissTaskReviewReminder: () => Promise<boolean>
+  markTaskActive: (taskId: string) => Promise<boolean>
+
+  // 页面内容读取
+  getPageText: () => Promise<{ success: boolean; text?: string; error?: string }>
+
   // 移除监听器
   removeAllListeners: (channel: string) => void
 }
