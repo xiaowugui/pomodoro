@@ -29,6 +29,9 @@ export interface TaskNote {
 // 任务类型
 export type TaskType = 'ai' | 'normal';
 
+// 任务状态
+export type TaskStatus = 'active' | 'completed' | 'needs-human-review';
+
 // 任务
 export interface Task {
   id: string;
@@ -36,7 +39,7 @@ export interface Task {
   projectId: string;
   estimatedPomodoros: number;
   completedPomodoros: number;
-  status: 'active' | 'completed';
+  status: TaskStatus;
   createdAt: string;
   completedAt?: string;
   workDates: string[];  // 任务执行过的日期列表 YYYY-MM-DD
@@ -127,8 +130,19 @@ export interface Settings {
     toggleTimer: string;
     skipPhase: string;
     showWindow: string;
-    endBreak: string;             // 结束休息快捷键
-    postponeBreak: string;        // 推迟休息快捷键
+    endBreak: string;
+    postponeBreak: string;
+  };
+
+  // 邮件监听设置
+  mailWatcher: {
+    enabled: boolean;
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    password: string;
+    pollInterval: number;
   };
 }
 
@@ -171,8 +185,17 @@ export const defaultSettings: Settings = {
     toggleTimer: 'CommandOrControl+Shift+P',
     skipPhase: 'CommandOrControl+Shift+S',
     showWindow: 'CommandOrControl+Shift+O',
-    endBreak: 'CommandOrControl+X',         // Stretchly风格快捷键
+    endBreak: 'CommandOrControl+X',
     postponeBreak: 'CommandOrControl+P',
+  },
+  mailWatcher: {
+    enabled: false,
+    host: '',
+    port: 993,
+    secure: true,
+    user: '',
+    password: '',
+    pollInterval: 30,
   },
 };
 
@@ -284,6 +307,11 @@ export const IPC_CHANNELS = {
   OPEN_TASK_NOTE_WINDOW: 'open-task-note-window',
   CLOSE_TASK_NOTE_WINDOW: 'close-task-note-window',
   
+  // 任务审核提醒
+  SHOW_TASK_REVIEW_REMINDER: 'show-task-review-reminder',
+  TASK_REVIEW_DISMISSED: 'task-review-dismissed',
+  TASK_MARK_ACTIVE: 'task-mark-active',
+  
   // 窗口控制
   SHOW_MAIN_WINDOW: 'show-main-window',
   HIDE_MAIN_WINDOW: 'hide-main-window',
@@ -310,4 +338,7 @@ export const IPC_CHANNELS = {
   // 空闲检测
   SHOW_IDLE_ALERT: 'show-idle-alert',
   IDLE_ALERT_RESPONSE: 'idle-alert-response',
+
+  // 页面内容读取
+  GET_PAGE_TEXT: 'get-page-text',
 } as const;

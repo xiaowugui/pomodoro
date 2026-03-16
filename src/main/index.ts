@@ -7,6 +7,7 @@ import { TaskNoteWindowManager } from './windows/task-note-window';
 import { TrayManager } from './tray';
 import { ShortcutsManager } from './shortcuts';
 import { TimerManager } from './timer';
+import { MailWatcher, MailWatcherConfig } from './mail-watcher';
 import { IPC_CHANNELS, Settings, Project, Task, PomodoroLog, TaskDayExecution, TaskNote, TaskLink, defaultSettings } from '../shared/types';
 
 /**
@@ -21,8 +22,9 @@ class PomodoroApp {
   private tray: TrayManager;
   private shortcuts: ShortcutsManager;
   private timer: TimerManager;
-  // 防止休息结束通知重复发送
+  private mailWatcher: MailWatcher;
   private isBreakCompleting: boolean = false;
+  private isTaskReviewDismissed: boolean = false;
 
   constructor() {
     this.storage = new StorageManager();
@@ -32,6 +34,7 @@ class PomodoroApp {
     this.tray = new TrayManager();
     this.shortcuts = new ShortcutsManager();
     this.timer = new TimerManager(this.storage);
+    this.mailWatcher = new MailWatcher();
     
     // 设置breakWindows引用用于事件传递
     this.timer.setBreakWindowsManager(this.breakWindows as any);
@@ -58,9 +61,31 @@ class PomodoroApp {
     this.tray.create(this.mainWindow);
     this.shortcuts.register(this);
 
+    this.setupMailWatcher();
+
     app.on('window-all-closed', this.onWindowAllClosed.bind(this));
     app.on('activate', this.onActivate.bind(this));
     app.on('before-quit', this.onBeforeQuit.bind(this));
+  }
+
+  private setupMailWatcher(): void {
+    const settings = this.storage.getSettings();
+    const mailConfig = settings.mailWatcher;
+
+    if (mailConfig && mailConfig.enabled && mailConfig.host && mailConfig.user) {
+      const config: MailWatcherConfig = {
+        host: mailConfig.host,
+        port: mailConfig.port,
+        secure: mailConfig.secure,
+        user: mailConfig.user,
+        password: mailConfig.password,
+        pollInterval: mailConfig.pollInterval,
+      };
+
+      this.mailWatcher.start(config).catch((error) => {
+        console.error('[PomodoroApp] Failed to start mail watcher:', error);
+      });
+    }
   }
 
   private setupApp(): void {
@@ -126,6 +151,29 @@ class PomodoroApp {
     }
   }
 
+  private async updateMailWatcher(settings: Settings): Promise<void> {
+    const mailConfig = settings.mailWatcher;
+
+    if (mailConfig.enabled && mailConfig.host && mailConfig.user) {
+      if (this.mailWatcher.getIsRunning()) {
+        await this.mailWatcher.stop();
+      }
+      const config: MailWatcherConfig = {
+        host: mailConfig.host,
+        port: mailConfig.port,
+        secure: mailConfig.secure,
+        user: mailConfig.user,
+        password: mailConfig.password,
+        pollInterval: mailConfig.pollInterval,
+      };
+      await this.mailWatcher.start(config);
+    } else {
+      if (this.mailWatcher.getIsRunning()) {
+        await this.mailWatcher.stop();
+      }
+    }
+  }
+
   private setupIPC(): void {
     // 设置管理
     ipcMain.handle(IPC_CHANNELS.GET_SETTINGS, () => {
@@ -135,10 +183,9 @@ class PomodoroApp {
     ipcMain.handle(IPC_CHANNELS.SET_SETTINGS, (_, settings: Settings) => {
       this.storage.setSettings(settings);
       this.mainWindow.webContents?.send(IPC_CHANNELS.SETTINGS_CHANGED, settings);
-      // 重新注册快捷键
       this.shortcuts.updateShortcuts(this);
-      // 更新开机启动设置
       this.updateAutoStart(settings.autoStartEnabled);
+      this.updateMailWatcher(settings);
       return settings;
     });
 
@@ -393,6 +440,56 @@ class PomodoroApp {
       this.taskNoteWindow.close(taskId);
       return true;
     });
+
+    ipcMain.handle('dismiss-task-review-reminder', () => {
+      this.isTaskReviewDismissed = true;
+      return true;
+    });
+
+    ipcMain.handle('mark-task-active', (_, taskId: string) => {
+      const tasks = this.storage.getTasks();
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        this.storage.updateTask({ ...task, status: 'active' });
+        this.mainWindow.webContents?.send('data-updated');
+      }
+      return true;
+    });
+
+    // 页面内容读取
+    ipcMain.handle(IPC_CHANNELS.GET_PAGE_TEXT, async () => {
+      try {
+        const webContents = this.mainWindow.webContents;
+        if (!webContents) {
+          return { success: false, error: 'Main window not available' };
+        }
+        const text = await webContents.executeJavaScript(`
+          (function() {
+            const getVisibleText = (element) => {
+              let text = '';
+              const style = window.getComputedStyle(element);
+              if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                return '';
+              }
+              for (let i = 0; i < element.childNodes.length; i++) {
+                const node = element.childNodes[i];
+                if (node.nodeType === Node.TEXT_NODE) {
+                  const trimmed = node.textContent?.trim() || '';
+                  if (trimmed) text += trimmed + ' ';
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                  text += getVisibleText(node) + ' ';
+                }
+              }
+              return text.trim();
+            };
+            return getVisibleText(document.body);
+          })()
+        `);
+        return { success: true, text };
+      } catch (error) {
+        return { success: false, error: String(error) };
+      }
+    });
   }
 
   private setupTimerEvents(): void {
@@ -542,17 +639,24 @@ class PomodoroApp {
    * 处理休息结束
    */
   private handleBreakEnd(): void {
-    // 隐藏休息窗口
     this.breakWindows.hide();
     
-    // 注销休息快捷键
     this.shortcuts.unregisterBreakShortcuts();
     
-    // 重置推迟计数
     this.timer.resetPostponeCount();
     
-    // 重置完成标志，允许下一次完成处理
     this.isBreakCompleting = false;
+
+    if (!this.isTaskReviewDismissed) {
+      const tasks = this.storage.getTasks();
+      const reviewTasks = tasks.filter(t => t.status === 'needs-human-review');
+      
+      if (reviewTasks.length > 0) {
+        this.mainWindow.webContents?.send('show-task-review-reminder', reviewTasks);
+      }
+    }
+    
+    this.isTaskReviewDismissed = false;
   }
 
   /**
@@ -673,6 +777,7 @@ class PomodoroApp {
   private onBeforeQuit(): void {
     this.shortcuts.unregisterAll();
     this.timer.destroy();
+    this.mailWatcher.stop();
   }
 
   // 公共方法供其他模块使用
