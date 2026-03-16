@@ -16,8 +16,11 @@ export class TaskNoteWindowManager {
     const existingWindow = this.noteWindows.get(taskId);
     if (existingWindow && !existingWindow.isDestroyed()) {
       existingWindow.focus();
+      console.log(`[TaskNoteWindow] Show: taskId=${taskId}, existingWindow=true`);
       return existingWindow;
     }
+
+    console.log(`[TaskNoteWindow] Show: taskId=${taskId}, existingWindow=false`);
 
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
@@ -71,6 +74,7 @@ export class TaskNoteWindowManager {
    * 关闭指定任务的备注窗口
    */
   close(taskId: string): void {
+    console.log(`[TaskNoteWindow] Close: taskId=${taskId}`);
     const window = this.noteWindows.get(taskId);
     if (window && !window.isDestroyed()) {
       window.close();
@@ -82,6 +86,8 @@ export class TaskNoteWindowManager {
    * 关闭所有备注窗口
    */
   closeAll(): void {
+    const windowCount = this.noteWindows.size;
+    console.log(`[TaskNoteWindow] Close all: ${windowCount} windows`);
     for (const [taskId, window] of this.noteWindows) {
       if (!window.isDestroyed()) {
         window.close();

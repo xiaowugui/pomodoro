@@ -70,12 +70,10 @@ export class MainWindowManager {
 
     // Log any loading errors
     this.window.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-      console.error('Failed to load:', errorCode, errorDescription);
+      console.error('[MainWindow] Failed to load:', errorCode, errorDescription);
     });
 
-    this.window.webContents.on('console-message', (event, level, message, line, sourceId) => {
-      console.log('Console:', message);
-    });
+    console.log(`[MainWindow] Create: ${windowWidth}x${windowHeight} at (${x},${y})`);
 
     return this.window;
   }
@@ -86,18 +84,21 @@ export class MainWindowManager {
       return;
     }
 
-    if (this.window.isMinimized()) {
+    const wasMinimized = this.window.isMinimized();
+    if (wasMinimized) {
       this.window.restore();
     }
 
     this.window.show();
     this.window.focus();
+    console.log(`[MainWindow] Show: wasMinimized=${wasMinimized}`);
   }
 
   hide(): void {
     if (this.window && !this.window.isDestroyed()) {
       this.window.hide();
     }
+    console.log('[MainWindow] Hide');
   }
 
   isVisible(): boolean {
@@ -108,6 +109,7 @@ export class MainWindowManager {
     if (this.window && !this.window.isDestroyed()) {
       this.window.close();
     }
+    console.log('[MainWindow] Close');
   }
 
   getWindow(): BrowserWindow | null {

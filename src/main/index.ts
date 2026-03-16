@@ -192,6 +192,7 @@ class PomodoroApp {
       this.shortcuts.updateShortcuts(this);
       this.updateAutoStart(settings.autoStartEnabled);
       this.updateMailWatcher(settings);
+      console.log(`[IPC] Settings updated: ${Object.keys(settings).length} keys`);
       return settings;
     });
 
@@ -223,15 +224,21 @@ class PomodoroApp {
     });
 
     ipcMain.handle(IPC_CHANNELS.CREATE_PROJECT, (_, project: Omit<Project, 'id' | 'createdAt'>) => {
-      return this.storage.createProject(project);
+      const result = this.storage.createProject(project);
+      console.log(`[IPC] Project created: id=${result.id}, name=${result.name}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.UPDATE_PROJECT, (_, project: Project) => {
-      return this.storage.updateProject(project);
+      const result = this.storage.updateProject(project);
+      console.log(`[IPC] Project updated: id=${project.id}, name=${project.name}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.DELETE_PROJECT, (_, projectId: string) => {
-      return this.storage.deleteProject(projectId);
+      const result = this.storage.deleteProject(projectId);
+      console.log(`[IPC] Project deleted: id=${projectId}`);
+      return result;
     });
 
     // 任务管理
@@ -240,15 +247,21 @@ class PomodoroApp {
     });
 
     ipcMain.handle(IPC_CHANNELS.CREATE_TASK, (_, task: Omit<Task, 'id' | 'createdAt'>) => {
-      return this.storage.createTask(task);
+      const result = this.storage.createTask(task);
+      console.log(`[IPC] Task created: id=${result.id}, title=${result.title}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.UPDATE_TASK, (_, task: Task) => {
-      return this.storage.updateTask(task);
+      const result = this.storage.updateTask(task);
+      console.log(`[IPC] Task updated: id=${task.id}, title=${task.title}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.DELETE_TASK, (_, taskId: string) => {
-      return this.storage.deleteTask(taskId);
+      const result = this.storage.deleteTask(taskId);
+      console.log(`[IPC] Task deleted: id=${taskId}`);
+      return result;
     });
 
     // 任务备注管理
@@ -261,19 +274,27 @@ class PomodoroApp {
     });
 
     ipcMain.handle(IPC_CHANNELS.CREATE_TASK_NOTE, (_, taskId: string) => {
-      return this.storage.createTaskNote(taskId);
+      const result = this.storage.createTaskNote(taskId);
+      console.log(`[IPC] Task note created: taskId=${taskId}, noteId=${result.id}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.UPDATE_TASK_NOTE, (_, note: TaskNote) => {
-      return this.storage.updateTaskNote(note);
+      const result = this.storage.updateTaskNote(note);
+      console.log(`[IPC] Task note updated: noteId=${note.id}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.DELETE_TASK_NOTE, (_, noteId: string) => {
-      return this.storage.deleteTaskNote(noteId);
+      const result = this.storage.deleteTaskNote(noteId);
+      console.log(`[IPC] Task note deleted: noteId=${noteId}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.ADD_TASK_LINK, (_, noteId: string, link: Omit<TaskLink, 'id' | 'createdAt'>) => {
-      return this.storage.addTaskLink(noteId, link);
+      const result = this.storage.addTaskLink(noteId, link);
+      console.log(`[IPC] Task link added: noteId=${noteId}, url=${link.url}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.UPDATE_TASK_LINK, (_, noteId: string, link: TaskLink) => {
@@ -281,7 +302,9 @@ class PomodoroApp {
     });
 
     ipcMain.handle(IPC_CHANNELS.DELETE_TASK_LINK, (_, noteId: string, linkId: string) => {
-      return this.storage.deleteTaskLink(noteId, linkId);
+      const result = this.storage.deleteTaskLink(noteId, linkId);
+      console.log(`[IPC] Task link deleted: noteId=${noteId}, linkId=${linkId}`);
+      return result;
     });
 
     // 日志管理
@@ -290,11 +313,15 @@ class PomodoroApp {
     });
 
     ipcMain.handle(IPC_CHANNELS.CREATE_LOG, (_, log: Omit<PomodoroLog, 'id'>) => {
-      return this.storage.createLog(log);
+      const result = this.storage.createLog(log);
+      console.log(`[IPC] Log created: taskId=${log.taskId}, duration=${log.duration}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.UPDATE_LOG, (_, log: PomodoroLog) => {
-      return this.storage.updateLog(log);
+      const result = this.storage.updateLog(log);
+      console.log(`[IPC] Log updated: logId=${log.id}`);
+      return result;
     });
 
     // 任务每日执行
@@ -311,28 +338,37 @@ class PomodoroApp {
     });
 
     ipcMain.handle(IPC_CHANNELS.CREATE_DAY_EXECUTION, (_, execution: Omit<TaskDayExecution, 'id' | 'createdAt'>) => {
-      return this.storage.createDayExecution(execution);
+      const result = this.storage.createDayExecution(execution);
+      console.log(`[IPC] Day execution created: taskId=${execution.taskId}, date=${execution.date}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.UPDATE_DAY_EXECUTION, (_, execution: TaskDayExecution) => {
-      return this.storage.updateDayExecution(execution);
+      const result = this.storage.updateDayExecution(execution);
+      console.log(`[IPC] Day execution updated: id=${execution.id}`);
+      return result;
     });
 
     ipcMain.handle(IPC_CHANNELS.DELETE_DAY_EXECUTION, (_, executionId: string) => {
-      return this.storage.deleteDayExecution(executionId);
+      const result = this.storage.deleteDayExecution(executionId);
+      console.log(`[IPC] Day execution deleted: id=${executionId}`);
+      return result;
     });
 
 
     // 窗口控制
     ipcMain.handle(IPC_CHANNELS.SHOW_MAIN_WINDOW, () => {
+      console.log('[IPC] Show main window');
       this.mainWindow.show();
     });
 
     ipcMain.handle(IPC_CHANNELS.HIDE_MAIN_WINDOW, () => {
+      console.log('[IPC] Hide main window');
       this.mainWindow.hide();
     });
 
     ipcMain.handle(IPC_CHANNELS.QUIT_APP, () => {
+      console.log('[IPC] Quit app requested');
       app.quit();
     });
 
@@ -351,25 +387,30 @@ class PomodoroApp {
       const settings = this.storage.getSettings();
       settings.autoStartEnabled = enabled;
       this.storage.setSettings(settings);
+      console.log(`[IPC] Auto-start changed: enabled=${enabled}`);
       return enabled;
     });
 
     // 通知
     ipcMain.handle(IPC_CHANNELS.SHOW_NOTIFICATION, (_, title: string, body: string) => {
+      console.log(`[IPC] Notification: title="${title}", body="${body}"`);
       this.showNotification(title, body);
     });
 
     // 休息窗口动作处理 - Stretchly style
     ipcMain.handle('break-complete', () => {
+      console.log('[IPC] Break complete handled');
       this.handleBreakComplete();
       return true;
     });
 
     ipcMain.handle('break-postpone', () => {
+      console.log('[IPC] Break postpone handled');
       return this.handleBreakPostpone();
     });
 
     ipcMain.handle('break-skip', () => {
+      console.log('[IPC] Break skip handled');
       this.handleBreakSkip();
       return true;
     });
@@ -378,20 +419,27 @@ class PomodoroApp {
     ipcMain.handle('finish-break', () => {
       // 防止重复处理
       if (this.isBreakCompleting) {
+        console.warn('[IPC] Finish break skipped: already completing');
         return true;
       }
+      const phase = this.timer.getState().phase;
+      console.log(`[IPC] Finish break: phase=${phase}`);
       this.breakWindows.finishBreak(true);
       // 通知计时器休息已完成
-      if (this.timer.getState().phase === 'short_break' || this.timer.getState().phase === 'long_break') {
+      if (phase === 'short_break' || phase === 'long_break') {
         this.timer.completeBreak();
       }
       return true;
     });
 
     ipcMain.handle('postpone-break', () => {
+      const success = this.timer.postpone !== undefined;
+      console.log(`[IPC] Postpone break: success=${success}`);
       this.breakWindows.postponeBreak();
       // 推迟后暂停计时器，稍后再恢复
-      this.timer.postpone?.();
+      if (this.timer.postpone) {
+        this.timer.postpone();
+      }
       return true;
     });
 
@@ -408,26 +456,32 @@ class PomodoroApp {
 
     // 计时器控制
     ipcMain.handle(IPC_CHANNELS.TIMER_START, (_, taskId?: string) => {
+      console.log(`[IPC] Timer start: taskId=${taskId || 'none'}`);
       this.timer.start(taskId);
     });
 
     ipcMain.handle(IPC_CHANNELS.TIMER_PAUSE, () => {
+      console.log('[IPC] Timer pause');
       this.timer.pause();
     });
 
     ipcMain.handle(IPC_CHANNELS.TIMER_RESUME, () => {
+      console.log('[IPC] Timer resume');
       this.timer.resume();
     });
 
     ipcMain.handle(IPC_CHANNELS.TIMER_STOP, () => {
+      console.log('[IPC] Timer stop');
       this.timer.stop();
     });
 
     ipcMain.handle(IPC_CHANNELS.TIMER_SKIP, () => {
+      console.log('[IPC] Timer skip');
       this.timer.skip();
     });
 
     ipcMain.handle(IPC_CHANNELS.TIMER_COMPLETE, () => {
+      console.log('[IPC] Timer complete');
       this.timer.complete();
     });
 
@@ -438,11 +492,13 @@ class PomodoroApp {
 
     // 任务备注窗口控制
     ipcMain.handle(IPC_CHANNELS.OPEN_TASK_NOTE_WINDOW, (_, taskId: string) => {
+      console.log(`[IPC] Open task note window: taskId=${taskId}`);
       this.taskNoteWindow.show(taskId);
       return true;
     });
 
     ipcMain.handle(IPC_CHANNELS.CLOSE_TASK_NOTE_WINDOW, (_, taskId: string) => {
+      console.log(`[IPC] Close task note window: taskId=${taskId}`);
       this.taskNoteWindow.close(taskId);
       return true;
     });
@@ -669,6 +725,8 @@ class PomodoroApp {
    * 处理工作完成
    */
   private handleWorkComplete(taskId: string | null): void {
+    console.log(`[PomodoroApp] Work complete: taskId=${taskId}`);
+    
     const settings = this.storage.getSettings();
     
     this.showNotification(
@@ -687,6 +745,8 @@ class PomodoroApp {
    * 处理休息开始
    */
   private handleBreakStart(breakType: 'short_break' | 'long_break'): void {
+    console.log(`[PomodoroApp] Break start: type=${breakType}`);
+    
     const settings = this.storage.getSettings();
     
     console.log('[PomodoroApp] handleBreakStart called, breakType:', breakType);
@@ -698,6 +758,7 @@ class PomodoroApp {
       // 显示休息窗口（传递设置）
       this.breakWindows.show(breakType, settings);
     } catch (error) {
+      console.error('[PomodoroApp] Break start failed:', error);
       console.error('[PomodoroApp] Error in breakWindows.show():', error);
     }
     
@@ -728,6 +789,8 @@ class PomodoroApp {
       const tasks = this.storage.getTasks();
       const reviewTasks = tasks.filter(t => t.status === 'needs-human-review');
       
+      console.log(`[PomodoroApp] Break end: reviewTasks=${reviewTasks.length}`);
+      
       if (reviewTasks.length > 0) {
         this.mainWindow.webContents?.send('show-task-review-reminder', reviewTasks);
       }
@@ -741,9 +804,11 @@ class PomodoroApp {
    */
   private handleBreakComplete(): void {
     console.log('[PomodoroApp] handleBreakComplete called');
+    console.log('[PomodoroApp] Break complete');
     
     // 防止重复处理 - 如果已经在完成过程中，直接返回
     if (this.isBreakCompleting) {
+      console.warn('[PomodoroApp] Break complete skipped: already completing');
       console.log('[PomodoroApp] handleBreakComplete skipped - already completing');
       return;
     }
@@ -751,6 +816,7 @@ class PomodoroApp {
     // 防止重复处理 - 如果 phase 不是 break，说明已经处理过了
     const phase = this.timer.getState().phase;
     if (phase !== 'short_break' && phase !== 'long_break') {
+      console.warn(`[PomodoroApp] Break complete skipped: not in break phase (phase=${phase})`);
       console.log('[PomodoroApp] handleBreakComplete skipped - not in break phase');
       return;
     }
@@ -782,6 +848,8 @@ class PomodoroApp {
   private handleBreakPostpone(): boolean {
     const success = this.timer.postpone();
     
+    console.log(`[PomodoroApp] Break postpone: success=${success}`);
+    
     if (success) {
       // 隐藏休息窗口但保持计时器状态
       this.breakWindows.hide();
@@ -804,6 +872,8 @@ class PomodoroApp {
    * 处理跳过休息
    */
   private handleBreakSkip(): void {
+    console.log('[PomodoroApp] Break skipped');
+    
     // 隐藏休息窗口
     this.breakWindows.hide();
     
@@ -819,7 +889,12 @@ class PomodoroApp {
    */
   private showNotification(title: string, body: string): void {
     const settings = this.storage.getSettings();
-    if (!settings.notificationEnabled) return;
+    if (!settings.notificationEnabled) {
+      console.warn('[PomodoroApp] Notification skipped: disabled in settings');
+      return;
+    }
+
+    console.log(`[PomodoroApp] Notification shown: title="${title}"`);
 
     new Notification({
       title,

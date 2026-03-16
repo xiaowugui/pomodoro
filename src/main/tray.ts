@@ -69,6 +69,7 @@ export class TrayManager {
 
     this.tray = new Tray(icon);
     this.tray.setToolTip('Pomodoro');
+    console.log('[TrayManager] Tray created');
 
     const contextMenu = Menu.buildFromTemplate([
       {
@@ -115,6 +116,8 @@ export class TrayManager {
   updateTooltip(timeRemaining: number, phase: string): void {
     if (!this.tray) return;
 
+    console.log(`[TrayManager] Update tooltip: phase=${phase}, time=${timeRemaining}`);
+
     const minutes = Math.floor(timeRemaining / 60);
     const seconds = timeRemaining % 60;
     const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -131,6 +134,8 @@ export class TrayManager {
 
   setIcon(iconType: 'default' | 'running' | 'break'): void {
     if (!this.tray) return;
+
+    console.log(`[TrayManager] Set icon: type=${iconType}`);
 
     const iconNames: Record<string, string> = {
       default: 'tray-icon.png',
@@ -154,7 +159,7 @@ export class TrayManager {
       }
       this.tray.setImage(icon);
     } catch (error) {
-      console.error('Failed to set tray icon:', error);
+      console.error('[TrayManager] Failed to set tray icon:', error);
     }
   }
 
@@ -222,6 +227,7 @@ export class TrayManager {
 
   destroy(): void {
     if (this.tray) {
+      console.log('[TrayManager] Tray destroyed');
       this.tray.destroy();
       this.tray = null;
     }

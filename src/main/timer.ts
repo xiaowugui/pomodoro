@@ -58,7 +58,10 @@ export class TimerManager extends EventEmitter {
   }
 
   start(taskId?: string): void {
-    if (this.state.isRunning) return;
+    if (this.state.isRunning) {
+      console.log('[TimerManager] Start ignored: already running');
+      return;
+    }
 
     this.settings = this.storage.getSettings();
 
@@ -74,32 +77,46 @@ export class TimerManager extends EventEmitter {
     this.state.isRunning = true;
     this.startTicking();
     
+    console.log(`[TimerManager] Start: phase=work, taskId=${this.state.currentTaskId || 'none'}, duration=${this.state.totalTime}s`);
+    
     this.emit('start');
     this.emit('phase-change', this.state.phase);
     this.saveState();
   }
 
   pause(): void {
-    if (!this.state.isRunning) return;
+    if (!this.state.isRunning) {
+      console.warn('[TimerManager] Pause ignored: not running');
+      return;
+    }
 
     this.state.isRunning = false;
     this.stopTicking();
+    
+    console.log(`[TimerManager] Pause: phase=${this.state.phase}, timeRemaining=${this.state.timeRemaining}s`);
     
     this.emit('pause');
     this.saveState();
   }
 
   resume(): void {
-    if (this.state.isRunning || this.state.phase === 'idle') return;
+    if (this.state.isRunning || this.state.phase === 'idle') {
+      console.warn('[TimerManager] Resume ignored: already running or idle');
+      return;
+    }
 
     this.state.isRunning = true;
     this.startTicking();
+    
+    console.log(`[TimerManager] Resume: phase=${this.state.phase}, timeRemaining=${this.state.timeRemaining}s`);
     
     this.emit('resume');
     this.saveState();
   }
 
   stop(): void {
+    const savedIncomplete = !!(this.sessionStartTime && this.state.phase === 'work');
+    
     this.state.isRunning = false;
     this.stopTicking();
     
@@ -114,12 +131,16 @@ export class TimerManager extends EventEmitter {
     this.state.sessionId = null;
     this.sessionStartTime = null;
     
+    console.log(`[TimerManager] Stop: phase=${this.state.phase}, savedIncomplete=${savedIncomplete}`);
+    
     this.emit('stop');
     this.emit('phase-change', 'idle');
     this.saveState();
   }
 
   skip(): void {
+    console.log(`[TimerManager] Skip: fromPhase=${this.state.phase}`);
+    
     this.stopTicking();
     
     if (this.sessionStartTime && this.state.phase === 'work') {
@@ -133,6 +154,8 @@ export class TimerManager extends EventEmitter {
   }
 
   complete(): void {
+    console.log(`[TimerManager] Complete: phase=${this.state.phase}, taskId=${this.state.currentTaskId || 'none'}`);
+    
     this.stopTicking();
     
     const completedPhase = this.state.phase;
@@ -156,11 +179,13 @@ export class TimerManager extends EventEmitter {
   postpone(): boolean {
     // 只能在休息阶段推迟
     if (this.state.phase !== 'short_break' && this.state.phase !== 'long_break') {
+      console.warn('[TimerManager] Postpone rejected: not in break phase');
       return false;
     }
 
     // 检查推迟次数限制
     if (this.postponeCount >= this.settings.postponeLimit) {
+      console.warn('[TimerManager] Postpone rejected: limit reached');
       return false;
     }
 
@@ -168,12 +193,15 @@ export class TimerManager extends EventEmitter {
     const elapsed = this.state.totalTime - this.state.timeRemaining;
     const percentElapsed = (elapsed / this.state.totalTime) * 100;
     if (percentElapsed >= this.settings.postponeDelayPercent) {
+      console.warn('[TimerManager] Postpone rejected: past delay window');
       return false;
     }
 
     // 增加推迟计数
     this.postponeCount++;
 
+    console.log(`[TimerManager] Postpone scheduled: count=${this.postponeCount}, delay=${this.settings.postponeMinutes}min`);
+    
     // 停止休息计时
     this.stopTicking();
 
@@ -245,6 +273,8 @@ export class TimerManager extends EventEmitter {
   }
 
   completeBreak(): void {
+    console.log(`[TimerManager] Break complete: phase=${this.state.phase}`);
+    
     this.stopTicking();
     
     // 重置推迟计数
@@ -286,6 +316,8 @@ export class TimerManager extends EventEmitter {
   }
 
   private handleTimerComplete(): void {
+    console.log(`[TimerManager] Timer complete: phase=${this.state.phase}, pomodorosCompleted=${this.state.pomodorosCompleted}`);
+    
     this.stopTicking();
     
     const completedPhase = this.state.phase;
@@ -305,6 +337,7 @@ export class TimerManager extends EventEmitter {
   }
 
   private transitionToNextPhase(): void {
+    const fromPhase = this.state.phase;
     this.settings = this.storage.getSettings();
 
     if (this.state.phase === 'work') {
@@ -351,6 +384,8 @@ export class TimerManager extends EventEmitter {
       }
     }
 
+    console.log(`[TimerManager] Phase transition: ${fromPhase} → ${this.state.phase}, autoStart=${this.state.isRunning}`);
+
     this.emit('phase-change', this.state.phase);
     this.emit('tick', this.getState());
     this.saveState();
@@ -361,6 +396,8 @@ export class TimerManager extends EventEmitter {
 
     const now = new Date().toISOString();
     const duration = this.state.totalTime - this.state.timeRemaining;
+
+    console.log(`[TimerManager] Log saved: taskId=${this.state.currentTaskId}, duration=${duration}s, completed=true`);
 
     const log: Omit<PomodoroLog, 'id'> = {
       taskId: this.state.currentTaskId,
@@ -382,6 +419,8 @@ export class TimerManager extends EventEmitter {
     const duration = this.state.totalTime - this.state.timeRemaining;
 
     if (duration < 60) return; // Don't save if less than 1 minute
+
+    console.log(`[TimerManager] Incomplete log saved: taskId=${this.state.currentTaskId}, duration=${duration}s`);
 
     const log: Omit<PomodoroLog, 'id'> = {
       taskId: this.state.currentTaskId,

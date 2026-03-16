@@ -26,15 +26,21 @@ export class ShortcutsManager {
     const settings = this.storage.getSettings();
     const shortcuts = settings.shortcuts;
 
+    const shortcutCount = [shortcuts.toggleTimer, shortcuts.skipPhase, shortcuts.showWindow].filter(Boolean).length;
+
+    console.log(`[ShortcutsManager] Registering shortcuts: ${shortcutCount} shortcuts`);
+
     // 切换计时器
     if (shortcuts.toggleTimer) {
       this.registerShortcut(shortcuts.toggleTimer, () => {
         const timer = app.getTimer();
-        if (timer.isRunning()) {
+        const isRunning = timer.isRunning();
+        if (isRunning) {
           timer.pause();
         } else {
           timer.start();
         }
+        console.log(`[ShortcutsManager] Toggle timer triggered: running=${!isRunning}`);
       });
     }
 
@@ -42,6 +48,7 @@ export class ShortcutsManager {
     if (shortcuts.skipPhase) {
       this.registerShortcut(shortcuts.skipPhase, () => {
         app.getTimer().skip();
+        console.log('[ShortcutsManager] Skip phase triggered');
       });
     }
 
@@ -65,6 +72,8 @@ export class ShortcutsManager {
 
     const settings = this.storage.getSettings();
     const shortcuts = settings.shortcuts;
+
+    console.log('[ShortcutsManager] Register break shortcuts');
 
     // 结束休息快捷键 (Stretchly风格: Cmd/Ctrl+X)
     if (shortcuts.endBreak) {
@@ -109,6 +118,9 @@ export class ShortcutsManager {
    * 注销休息期间的快捷键
    */
   unregisterBreakShortcuts(): void {
+    const count = this.breakShortcuts.length;
+    console.log(`[ShortcutsManager] Unregister break shortcuts: ${count} shortcuts`);
+    
     for (const shortcut of this.breakShortcuts) {
       try {
         globalShortcut.unregister(shortcut);
@@ -134,10 +146,13 @@ export class ShortcutsManager {
       const success = globalShortcut.register(accelerator, callback);
       if (success) {
         this.registeredShortcuts.push(accelerator);
+        console.log(`[ShortcutsManager] Shortcut registered: ${accelerator}`);
+      } else {
+        console.error(`[ShortcutsManager] Failed to register shortcut ${accelerator}`);
       }
       return success;
     } catch (error) {
-      console.error(`[ShortcutsManager] Error registering shortcut ${accelerator}:`, error);
+      console.error(`[ShortcutsManager] Failed to register shortcut ${accelerator}:`, error);
       return false;
     }
   }
@@ -155,10 +170,13 @@ export class ShortcutsManager {
       const success = globalShortcut.register(accelerator, callback);
       if (success) {
         this.breakShortcuts.push(accelerator);
+        console.log(`[ShortcutsManager] Break shortcut registered: ${accelerator}`);
+      } else {
+        console.error(`[ShortcutsManager] Failed to register break shortcut ${accelerator}`);
       }
       return success;
     } catch (error) {
-      console.error(`[ShortcutsManager] Error registering break shortcut ${accelerator}:`, error);
+      console.error(`[ShortcutsManager] Failed to register break shortcut ${accelerator}:`, error);
       return false;
     }
   }
@@ -167,6 +185,8 @@ export class ShortcutsManager {
    * 注销所有快捷键
    */
   unregisterAll(): void {
+    console.log('[ShortcutsManager] Unregister all shortcuts');
+    
     // 注销常规快捷键
     for (const shortcut of this.registeredShortcuts) {
       try {

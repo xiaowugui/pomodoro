@@ -31,7 +31,7 @@ export class BreakWindowManager {
     
     // 如果已经在休息，不重复创建（检查是否有实际窗口）
     if (this.breakWins && this.breakWins.length > 0) {
-      console.log('[BreakWindowManager] Already showing break, returning');
+      console.warn('[BreakWindow] Already showing break, skipping');
       return;
     }
     
@@ -47,6 +47,8 @@ export class BreakWindowManager {
 
     this.breakDuration = breakDuration;
     this.startTime = Date.now();
+
+    console.log(`[BreakWindow] Show short break: duration=${settings.shortBreakDuration}min, strictMode=${strictMode}`);
 
     const modalPath = 'file://' + path.join(__dirname, '../../renderer/break.html');
     this.breakWins = [];
@@ -231,7 +233,7 @@ export class BreakWindowManager {
     
     // 如果已经在休息，不重复创建（检查是否有实际窗口）
     if (this.breakWins && this.breakWins.length > 0) {
-      console.log('[BreakWindowManager] Already showing break, returning');
+      console.warn('[BreakWindow] Already showing break, skipping');
       return;
     }
     
@@ -247,6 +249,8 @@ export class BreakWindowManager {
 
     this.breakDuration = breakDuration;
     this.startTime = Date.now();
+
+    console.log(`[BreakWindow] Show long break: duration=${settings.longBreakDuration}min`);
 
     const modalPath = 'file://' + path.join(__dirname, '../../renderer/break.html');
     this.breakWins = [];
@@ -407,6 +411,7 @@ export class BreakWindowManager {
    * 显示休息窗口（通用方法）
    */
   show(breakType: 'short_break' | 'long_break', settings: Settings): void {
+    console.log(`[BreakWindow] Show: type=${breakType}`);
     console.log('[BreakWindowManager] show called, breakType:', breakType, 'current breakWins:', this.breakWins?.length);
     if (breakType === 'short_break') {
       this.showShortBreak(settings);
@@ -419,6 +424,7 @@ export class BreakWindowManager {
    * 完成休息 - 借鉴 Stretchly breakComplete
    */
   finishBreak(shouldPlaySound: boolean = false): void {
+    console.log(`[BreakWindow] Finish break: shouldPlaySound=${shouldPlaySound}`);
     try {
       const shortcut = this.settings?.shortcuts?.endBreak;
       if (shortcut) {
@@ -438,6 +444,7 @@ export class BreakWindowManager {
    * 推迟休息 - 借鉴 Stretchly postponeBreak
    */
   postponeBreak(): void {
+    console.log(`[BreakWindow] Postpone break: count=${this.postponesNumber + 1}`);
     this.finishBreak(false);
     this.postponesNumber++;
   }
@@ -475,6 +482,7 @@ export class BreakWindowManager {
    * 隐藏休息窗口
    */
   hide(): void {
+    console.log('[BreakWindow] Hide');
     this.breakWins = this.closeWindows(this.breakWins);
   }
 
