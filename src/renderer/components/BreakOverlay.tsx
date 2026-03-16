@@ -61,8 +61,8 @@ export default function BreakOverlay({
   const isShortBreak = type === 'short_break';
   const remainingPostpones = postponeLimit - postponeCount;
   
-  // 计算进度环
-  const ringSize = isFullscreen ? 360 : 240;
+  // 计算进度环 - 增加尺寸以确保数字不被裁剪
+  const ringSize = isFullscreen ? 420 : 280;
   const circumference = 2 * Math.PI * (ringSize / 2 - 12);
   const strokeDashoffset = circumference - (progress / 100) * circumference;
   
