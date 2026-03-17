@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { powerMonitor, BrowserWindow } from 'electron';
-import { exec } from 'child_process';
+import { powerMonitor } from 'electron';
+import { execSync } from 'child_process';
 import { StorageManager } from './storage';
 
 interface IdleDetectorEvents {
@@ -116,38 +116,18 @@ export class IdleDetector extends EventEmitter {
       return;
     }
 
-    const psCommand = `
-      Add-Type @"
-        using System;
-        using System.Runtime.InteropServices;
-        using System.Text;
-        public class Win32 {
-          [DllImport("user32.dll")]
-          public static extern IntPtr GetForegroundWindow();
-          [DllImport("user32.dll")]
-          public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
-        }
-"@
-      $hwnd = [Win32]::GetForegroundWindow()
-      if ($hwnd -ne [IntPtr]::Zero) {
-        $sb = New-Object System.Text.StringBuilder 256
-        [Win32]::GetWindowText($hwnd, $sb, 256) | Out-Null
-        $sb.ToString()
-      }
-    `;
-
-    exec(`powershell -Command "${psCommand.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`, { timeout: 3000 }, (error, stdout) => {
-      if (error) {
-        console.log('[IdleDetector] Failed to check active window:', error.message);
-        callback(true);
-        return;
-      }
-
-      const windowTitle = stdout.trim();
-      const hasActiveWindow = windowTitle.length > 0;
-      console.log(`[IdleDetector] Active window check: "${windowTitle}", hasActiveWindow: ${hasActiveWindow}`);
+    try {
+      const result = execSync(
+        'powershell -NoProfile -Command "try { (Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1).ProcessName } catch { \'\' }"',
+        { timeout: 3000, encoding: 'utf8' }
+      );
+      const hasActiveWindow = result.trim().length > 0;
+      console.log(`[IdleDetector] Active window check: "${result.trim()}", hasActiveWindow: ${hasActiveWindow}`);
       callback(hasActiveWindow);
-    });
+    } catch (error) {
+      console.log('[IdleDetector] Failed to check active window:', error);
+      callback(true);
+    }
   }
 
   private handleIdleDetected(): void {
