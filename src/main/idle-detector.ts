@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { powerMonitor, BrowserWindow } from 'electron';
+import { exec } from 'child_process';
 import { StorageManager } from './storage';
 
 interface IdleDetectorEvents {
@@ -92,16 +93,61 @@ export class IdleDetector extends EventEmitter {
     const state = timer.getState();
     if (state.phase !== 'work') return;
 
-    // 使用 Electron 的 powerMonitor 获取系统空闲时间（秒）
     const systemIdleTime = powerMonitor.getSystemIdleTime();
     const thresholdSeconds = this.idleThresholdMinutes * 60;
 
-    // 系统空闲时间超过阈值
     if (systemIdleTime >= thresholdSeconds && !this.isIdleDetected) {
-      this.isIdleDetected = true;
-      this.idleStartTime = Date.now() - (systemIdleTime * 1000);
-      this.handleIdleDetected();
+      this.checkActiveWindow((hasActiveWindow: boolean) => {
+        if (hasActiveWindow) {
+          console.log('[IdleDetector] Active window detected, skipping idle detection');
+          return;
+        }
+
+        this.isIdleDetected = true;
+        this.idleStartTime = Date.now() - (systemIdleTime * 1000);
+        this.handleIdleDetected();
+      });
     }
+  }
+
+  private checkActiveWindow(callback: (hasActiveWindow: boolean) => void): void {
+    if (process.platform !== 'win32') {
+      callback(true);
+      return;
+    }
+
+    const psCommand = `
+      Add-Type @"
+        using System;
+        using System.Runtime.InteropServices;
+        using System.Text;
+        public class Win32 {
+          [DllImport("user32.dll")]
+          public static extern IntPtr GetForegroundWindow();
+          [DllImport("user32.dll")]
+          public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+        }
+"@
+      $hwnd = [Win32]::GetForegroundWindow()
+      if ($hwnd -ne [IntPtr]::Zero) {
+        $sb = New-Object System.Text.StringBuilder 256
+        [Win32]::GetWindowText($hwnd, $sb, 256) | Out-Null
+        $sb.ToString()
+      }
+    `;
+
+    exec(`powershell -Command "${psCommand.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`, { timeout: 3000 }, (error, stdout) => {
+      if (error) {
+        console.log('[IdleDetector] Failed to check active window:', error.message);
+        callback(true);
+        return;
+      }
+
+      const windowTitle = stdout.trim();
+      const hasActiveWindow = windowTitle.length > 0;
+      console.log(`[IdleDetector] Active window check: "${windowTitle}", hasActiveWindow: ${hasActiveWindow}`);
+      callback(hasActiveWindow);
+    });
   }
 
   private handleIdleDetected(): void {
