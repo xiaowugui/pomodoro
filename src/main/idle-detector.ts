@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 import { powerMonitor } from 'electron';
-import { execSync } from 'child_process';
 import { StorageManager } from './storage';
 
 interface IdleDetectorEvents {
@@ -10,28 +9,13 @@ interface IdleDetectorEvents {
 
 export class IdleDetector extends EventEmitter {
   private storage: StorageManager;
-  private idleCheckInterval: NodeJS.Timeout | null = null;
-  private isIdleDetected: boolean = false;
-  private idleStartTime: number | null = null;
   private currentTaskId: string | null = null;
-  private isEnabled: boolean = true;
-  private idleThresholdMinutes: number = 5;
   private isMonitoring: boolean = false;
+  private lockStartTime: number | null = null;
 
   constructor(storage: StorageManager) {
     super();
     this.storage = storage;
-    this.loadSettings();
-  }
-
-  private loadSettings(): void {
-    const settings = this.storage.getSettings();
-    this.isEnabled = settings.idleDetectionEnabled ?? true;
-    this.idleThresholdMinutes = settings.idleThresholdMinutes ?? 5;
-  }
-
-  reloadSettings(): void {
-    this.loadSettings();
   }
 
   setCurrentTask(taskId: string | null): void {
@@ -41,27 +25,18 @@ export class IdleDetector extends EventEmitter {
   start(): void {
     if (this.isMonitoring) return;
     this.isMonitoring = true;
-    this.isIdleDetected = false;
-    this.idleStartTime = null;
-
+    this.lockStartTime = null;
     this.setupPowerMonitor();
-    this.startIdleCheck();
   }
 
   stop(): void {
     this.isMonitoring = false;
-    if (this.idleCheckInterval) {
-      clearInterval(this.idleCheckInterval);
-      this.idleCheckInterval = null;
-    }
-    this.isIdleDetected = false;
-    this.idleStartTime = null;
+    this.lockStartTime = null;
   }
 
   private setupPowerMonitor(): void {
     powerMonitor.on('suspend', () => {
       if (!this.isMonitoring) return;
-      const settings = this.storage.getSettings();
       const timer = (this.storage as any).timer;
       if (timer && timer.getState && timer.getState().phase === 'work') {
         this.handleLockScreen();
@@ -77,104 +52,34 @@ export class IdleDetector extends EventEmitter {
     });
   }
 
-  private startIdleCheck(): void {
-    const checkInterval = 30000;
-    this.idleCheckInterval = setInterval(() => {
-      this.checkIdle();
-    }, checkInterval);
-  }
-
-  private checkIdle(): void {
-    if (!this.isEnabled || !this.isMonitoring) return;
-
-    const timer = (this.storage as any).timer;
-    if (!timer || !timer.getState) return;
-
-    const state = timer.getState();
-    if (state.phase !== 'work') return;
-
-    const systemIdleTime = powerMonitor.getSystemIdleTime();
-    const thresholdSeconds = this.idleThresholdMinutes * 60;
-
-    if (systemIdleTime >= thresholdSeconds && !this.isIdleDetected) {
-      this.checkActiveWindow((hasActiveWindow: boolean) => {
-        if (hasActiveWindow) {
-          console.log('[IdleDetector] Active window detected, skipping idle detection');
-          return;
-        }
-
-        this.isIdleDetected = true;
-        this.idleStartTime = Date.now() - (systemIdleTime * 1000);
-        this.handleIdleDetected();
-      });
-    }
-  }
-
-  private checkActiveWindow(callback: (hasActiveWindow: boolean) => void): void {
-    if (process.platform !== 'win32') {
-      callback(true);
-      return;
-    }
-
-    try {
-      const result = execSync(
-        'powershell -NoProfile -Command "try { (Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1).ProcessName } catch { \'\' }"',
-        { timeout: 3000, encoding: 'utf8' }
-      );
-      const hasActiveWindow = result.trim().length > 0;
-      console.log(`[IdleDetector] Active window check: "${result.trim()}", hasActiveWindow: ${hasActiveWindow}`);
-      callback(hasActiveWindow);
-    } catch (error) {
-      console.log('[IdleDetector] Failed to check active window:', error);
-      callback(true);
-    }
-  }
-
-  private handleIdleDetected(): void {
-    const timer = (this.storage as any).timer;
-    if (timer && timer.pause) {
-      timer.pause();
-    }
-
-    this.emit('idle-detected', this.currentTaskId, 'idle');
-  }
-
   private handleLockScreen(): void {
     const timer = (this.storage as any).timer;
     if (timer && timer.pause) {
       timer.pause();
     }
 
-    if (this.isIdleDetected && this.idleStartTime) {
-      this.recordIdleLog('locked');
+    if (this.lockStartTime) {
+      this.recordLockLog();
     }
 
     this.emit('idle-detected', this.currentTaskId, 'locked');
-    this.isIdleDetected = false;
-    this.idleStartTime = null;
+    this.lockStartTime = Date.now();
   }
 
   recordActivity(): void {
-    const wasIdle = this.isIdleDetected;
-
-    if (this.isIdleDetected && this.idleStartTime) {
-      this.recordIdleLog('idle');
-    }
-
-    this.isIdleDetected = false;
-    this.idleStartTime = null;
-
-    if (wasIdle) {
+    if (this.lockStartTime) {
+      this.recordLockLog();
       this.emit('user-active');
     }
+    this.lockStartTime = null;
   }
 
-  private recordIdleLog(reason: 'idle' | 'locked'): void {
-    if (!this.idleStartTime) return;
+  private recordLockLog(): void {
+    if (!this.lockStartTime) return;
 
     const now = new Date();
-    const startTime = new Date(this.idleStartTime);
-    const durationMinutes = Math.round((now.getTime() - startTime.getTime()) / 60000);
+    const startTime = new Date(this.lockStartTime);
+    const durationMinutes = Math.round((now.getTime() - this.lockStartTime) / 60000);
 
     if (durationMinutes < 1) return;
 
@@ -184,10 +89,10 @@ export class IdleDetector extends EventEmitter {
         startTime: startTime.toISOString(),
         endTime: now.toISOString(),
         durationMinutes,
-        reason,
+        reason: 'locked',
       });
     } catch (error) {
-      console.error('[IdleDetector] Failed to record idle log:', error);
+      console.error('[IdleDetector] Failed to record lock log:', error);
     }
   }
 
