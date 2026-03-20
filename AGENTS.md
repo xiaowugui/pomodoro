@@ -67,11 +67,189 @@ npm run clean              # Remove build artifacts
 
 ## Test Commands
 
-**Vitest configured** - Automated testing framework:
+**Vitest configured** - Unit/component testing:
 ```bash
 npm run test              # Run all tests once
 npm run test:watch        # Watch mode for development
 ```
+
+**Playwright configured** - E2E/Visual testing:
+```bash
+npx playwright test              # Run all E2E tests
+npx playwright test --ui         # Visual UI mode
+npx playwright test e2e/specs/   # Run specific test folder
+npx playwright show-report       # Show HTML report
+```
+
+## 🔴 TDD: Test-Driven Development (MANDATORY)
+
+**每次代码修改都必须遵循测试驱动开发流程！**
+
+### TDD 流程
+
+```
+1. 写测试 → 2. 运行测试(失败) → 3. 写代码 → 4. 运行测试(通过) → 5. 重构 → 6. 重复
+```
+
+### 每次修改的标准流程
+
+| 步骤 | 操作 | 验证 |
+|------|------|------|
+| 1 | 明确修改需求 | 理解要修复的bug或要实现的功能 |
+| 2 | 写/更新测试 | 测试必须先于代码存在 |
+| 3 | 运行 `npm run test` | 确保单元测试通过 |
+| 4 | 运行 `npx playwright test` | 确保E2E测试通过 |
+| 5 | 修改代码 | 实现功能或修复bug |
+| 6 | 重新运行测试 | 确保全部通过 |
+| 7 | 构建并验证 | `npm run build` + 运行exe验证 |
+
+### 修改分类与测试要求
+
+| 修改类型 | 必须完成的测试 |
+|---------|---------------|
+| Bug修复 | Vitest单元测试 + Playwright E2E测试 |
+| 新功能 | Vitest单元测试 + Playwright E2E测试 |
+| UI修改 | Playwright E2E测试(必须) |
+| 组件修改 | Vitest组件测试 + Playwright E2E测试 |
+| 逻辑修改 | Vitest单元测试 + Playwright E2E测试 |
+
+### 测试通过标准
+
+**全部通过才能认为修改完成：**
+
+```bash
+# 1. 单元测试必须全部通过
+npm run test
+# Expected: All tests passed
+
+# 2. E2E测试必须全部通过  
+npx playwright test
+# Expected: All tests passed
+
+# 3. 构建必须成功
+npm run build
+# Expected: No errors
+```
+
+### ❌ 未完成测试 = 未完成任务
+
+| 违规行为 | 后果 |
+|---------|------|
+| 未写测试就提交代码 | 标记为INCOMPLETE |
+| 测试失败但仍合并 | 标记为INCOMPLETE |
+| 只跑Vitest不跑Playwright | 标记为INCOMPLETE |
+| 构建失败 | 标记为INCOMPLETE |
+
+### 测试隔离原则
+
+- 每个测试必须独立运行，不依赖其他测试
+- 使用 `beforeEach`/`afterEach` 清理状态
+- Mock外部依赖（API调用、Electron API等）
+- 测试数据使用工厂函数生成
+
+## 🔴 MANDATORY: Playwright E2E Testing for All Agents
+
+**CRITICAL: Every agent MUST complete Playwright E2E tests for any UI changes.**
+
+### Why This Is Required
+
+| Test Type | Tool | What It Tests |
+|-----------|------|---------------|
+| Unit Tests | Vitest | Logic, stores, utilities |
+| Component Tests | Vitest + @testing-library | Component behavior with mocked deps |
+| **E2E/Visual Tests** | **Playwright** | **Real browser rendering, layout, animations** |
+
+**Vitest/jsdom CANNOT test:**
+- Actual CSS layout (flexbox, grid positioning)
+- Visual rendering in real browser
+- CSS animations and transitions
+- Hover/focus states
+- Multi-browser behavior
+
+### Agent Testing Requirements
+
+**FOR EVERY UI CHANGE, AGENTS MUST:**
+
+1. **Create/Update Playwright tests** in `e2e/specs/`
+2. **Run tests before completing work**
+3. **Verify tests pass**
+
+### Test File Structure
+
+```
+e2e/
+├── pages/               # Page Object classes
+│   └── timer-page.ts
+├── specs/               # Test specifications
+│   ├── layout.spec.ts   # Layout and navigation
+│   └── timer.spec.ts    # Timer functionality
+└── fixtures/            # Test data
+```
+
+### Test Patterns
+
+**Page Object Pattern (REQUIRED):**
+```typescript
+// e2e/pages/timer-page.ts
+export class TimerPage {
+  constructor(readonly page: Page) {}
+  
+  async goto() {
+    await this.page.goto('/timer');
+  }
+  
+  async startTimer() {
+    await this.page.getByRole('button', { name: /开始/i }).click();
+  }
+}
+```
+
+**Layout Tests:**
+```typescript
+test('侧边栏可见且包含导航项', async ({ page }) => {
+  await expect(page.getByTitle('计时器')).toBeVisible();
+});
+```
+
+**Button/Interaction Tests:**
+```typescript
+test('点击开始后显示暂停按钮', async ({ page }) => {
+  await page.getByRole('button', { name: /开始/i }).click();
+  await expect(page.getByRole('button', { name: /暂停/i })).toBeVisible();
+});
+```
+
+### Running E2E Tests
+
+```bash
+# Before starting work
+npx playwright test --project=chromium
+
+# After completing UI changes (MANDATORY)
+npx playwright test
+
+# Visual UI mode for debugging
+npx playwright test --ui
+```
+
+### Test Coverage Requirements
+
+| UI Component | Minimum Tests |
+|-------------|---------------|
+| Sidebar | Navigation items visible, click navigation works |
+| Timer | Display format, start/pause/stop buttons work |
+| Task Selector | Dropdown visible, task selection works |
+| Settings | Form renders, save/cancel buttons work |
+| Modals/Overlays | Open/close behavior correct |
+
+### No E2E Tests = Incomplete Work
+
+**Agents that modify UI without adding Playwright tests will be marked as having INCOMPLETE work.**
+
+The Playwright infrastructure is already configured:
+- Config: `playwright.config.ts`
+- Tests: `e2e/specs/`
+- Page Objects: `e2e/pages/`
 
 ## Project Structure
 
